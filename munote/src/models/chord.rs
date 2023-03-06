@@ -1,18 +1,14 @@
 use std::any::Any;
 
-use nom::{
-    character::complete::char,
-    sequence::{delimited, terminated},
-    IResult,
-};
+use nom::IResult;
 
 use crate::{
     context::ContextPtr,
     duration::Duration,
     impl_symbol_for,
-    models::ws,
-    symbol::{parse_symbols, same_symbols, Symbol},
+    symbol::{same_symbols, Symbol},
 };
+use crate::symbol::parse_delimited_symbols;
 
 #[derive(Clone, Debug)]
 pub struct Chord {
@@ -35,11 +31,7 @@ impl Chord {
     }
 
     pub fn parse(input: &str, context: ContextPtr) -> IResult<&str, Self> {
-        let (input, symbols) = delimited(
-            terminated(char('{'), ws),
-            |i| parse_symbols(i, context.clone()),
-            terminated(char('}'), ws),
-        )(input)?;
+        let (input, symbols) = parse_delimited_symbols(input, context.clone(), '{', '}', false)?;
 
         let ctx = context.borrow();
 

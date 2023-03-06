@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
+use colorize::AnsiColor;
 use lazy_static::lazy_static;
 use parse_display::FromStr;
 
@@ -131,6 +132,8 @@ impl TagId {
                 m.insert("|", TagId::Bar);
                 m.insert("acc", TagId::Accidental);
                 m.insert("accol", TagId::Accolade);
+                m.insert("cresc", TagId::Crescendo);
+                m.insert("dim", TagId::Decrescendo);
                 m.insert("instr", TagId::Instrument);
                 m.insert("mord", TagId::Mordent);
                 m.insert("pizz", TagId::Pizzicato);
@@ -140,10 +143,16 @@ impl TagId {
                 m
             };
         }
-        if TAG_ID_LOOKUP.contains_key(name) {
+        let res = if TAG_ID_LOOKUP.contains_key(name) {
             Ok(TAG_ID_LOOKUP[name])
         } else {
             TagId::from_str(name).map_err(|e| anyhow!("{e}"))
+        };
+
+        if res.is_err() {
+            eprintln!("{}", format!("Tag ID \"{name}\" not found\n").red());
         }
+
+        res
     }
 }

@@ -3,10 +3,10 @@ use std::{any::Any, fmt};
 use nom::{
     character::complete::{char, one_of},
     combinator::{opt, peek},
-    multi::many0,
-    sequence::{preceded, terminated},
     IResult,
+    sequence::{preceded, terminated},
 };
+use nom::multi::fold_many0;
 
 use crate::{
     chord::Chord,
@@ -95,59 +95,104 @@ pub fn same_symbols(
 ) -> bool {
     lhs.len() == rhs.len()
         && lhs
-            .iter()
-            .enumerate()
-            .fold(true, |val, (i, s)| val && s.equals(&*rhs[i]))
+        .iter()
+        .enumerate()
+        .fold(true, |val, (i, s)| val && s.equals(&*rhs[i]))
 }
 
-pub fn parse_symbols(
+pub fn parse_delimited_symbols(
+    mut input: &str,
+    context: ContextPtr,
+    start_delimiter: char,
+    end_delimiter: char,
+    skip_start_delimiter: bool,
+)
+    -> IResult<&str, Vec<Box<dyn Symbol>>> {
+    // println!("Parsing symbols: {input}");
+    if !skip_start_delimiter {
+        let (i, _) = terminated(char(start_delimiter), ws)(input)?;
+        input = i;
+    }
+
+    let (input, (skip_end_delimiter, symbols)) = parse_symbols(input, context.clone())?;
+
+    if !skip_end_delimiter {
+        // println!("Not already terminated!");
+        let (input, _) = terminated(char(end_delimiter), ws)(input)?;
+        return Ok((input, symbols));
+    }
+
+    // println!("Already terminated!");
+    Ok((input, symbols))
+}
+
+fn parse_symbols(
     input: &str,
     context: ContextPtr,
-) -> IResult<&str, Vec<Box<dyn Symbol>>> {
+) -> IResult<&str, (bool, Vec<Box<dyn Symbol>>)> {
     // println!("Checking symbols: \"{input}\"");
     let (input, first) = parse_symbol(input, context.clone())?;
 
-    let (input, mut symbols) = many0(preceded(
-        terminated(opt(char(',')), ws),
-        preceded(ws, |i| parse_symbol(i, context.clone())),
-    ))(input)?;
+    let first = first.expect("No initial symbol found");
+
+    let (input, (already_terminated, mut symbols)) = fold_many0(
+        preceded(
+            terminated(opt(char(',')), ws),
+            preceded(ws, |i| parse_symbol(i, context.clone())),
+        ),
+        || (false, Vec::new()),
+        |(mut already_terminated, mut symbols): (bool, Vec<Box<dyn Symbol>>), maybe_symbol| {
+            match maybe_symbol {
+                Some(s) => symbols.push(s),
+                None => already_terminated = true,
+            }
+
+            (already_terminated, symbols)
+        },
+    )(input)?;
 
     symbols.insert(0, first);
     // println!("Parsed symbols: \"{symbols:?}\"");
 
-    Ok((input, symbols))
+    Ok((input, (already_terminated, symbols)))
 }
 
 fn parse_symbol(
     input: &str,
     context: ContextPtr,
-) -> IResult<&str, Box<dyn Symbol>> {
+) -> IResult<&str, Option<Box<dyn Symbol>>> {
     // println!("Checking symbol: \"{input}\"");
     let (_, next) = peek(one_of("abcdefghilmrst{_|\\"))(input)?;
 
     let (input, symbol) = match next {
         '\\' | '|' => {
-            let (input, tag) = Tag::parse(input, context)?;
+            let (input, maybe_tag) = Tag::parse(input, context)?;
+
+            let tag = match maybe_tag {
+                Some(tag) => tag,
+                None => return Ok((input, None))
+            };
+
             let b: Box<dyn Symbol> = Box::new(tag);
             (input, b)
-        },
+        }
         '{' => {
             let (input, chord) = Chord::parse(input, context)?;
             let b: Box<dyn Symbol> = Box::new(chord);
             (input, b)
-        },
+        }
         '_' => {
             let (input, rest) = Rest::parse(input, context)?;
             let b: Box<dyn Symbol> = Box::new(rest);
             (input, b)
-        },
+        }
         _ => {
             let (input, note) = Note::parse(input, context)?;
             let b: Box<dyn Symbol> = Box::new(note);
             (input, b)
-        },
+        }
     };
     // println!("Parsed symbol: \"{symbol:?}\"");
 
-    Ok((input, symbol))
+    Ok((input, Some(symbol)))
 }

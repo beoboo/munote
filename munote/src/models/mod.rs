@@ -21,6 +21,7 @@ pub mod tag_id;
 pub mod tag_param;
 pub mod unit;
 pub mod voice;
+pub mod error;
 
 fn string(input: &str) -> IResult<&str, &str> {
     recognize(preceded(alpha1, alphanumeric0))(input)

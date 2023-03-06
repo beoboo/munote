@@ -1,23 +1,18 @@
 use std::any::Any;
 
-use nom::{
-    branch::alt,
-    bytes::complete::tag,
-    character::complete::{alpha1, char},
-    combinator::{map_res, opt},
-    multi::many0,
-    sequence::{delimited, preceded, terminated},
-    IResult,
-};
+use nom::{branch::alt, bytes::complete::tag, character::complete::{alpha1, char}, combinator::opt, error_position, IResult, multi::many0, sequence::{delimited, preceded, terminated}};
+use nom::Err;
+use nom::error::ErrorKind;
 
 use crate::{
     context::ContextPtr,
     impl_symbol_for,
     models::ws,
-    symbol::{parse_symbols, same_symbols, Symbol},
+    symbol::{same_symbols, Symbol},
     tag_id::TagId,
     tag_param::TagParam,
 };
+use crate::symbol::parse_delimited_symbols;
 
 #[derive(Debug, Clone)]
 pub struct Tag {
@@ -63,12 +58,22 @@ impl Tag {
         self
     }
 
-    pub fn parse(input: &str, mut context: ContextPtr) -> IResult<&str, Self> {
+    pub fn parse(input: &str, mut context: ContextPtr) -> IResult<&str, Option<Self>> {
         // println!("\n\n\nParsing \"{input}\"\n\n");
-        let (input, id) = map_res(
-            alt((terminated(preceded(char('\\'), alpha1), ws), tag("|"))),
-            TagId::lookup,
-        )(input)?;
+        let (input, maybe_id) =
+            alt((terminated(preceded(char('\\'), alpha1), ws), tag("|"))
+            )(input)?;
+
+        let (skip_start_delimiter, name) = if maybe_id.ends_with("Begin") {
+            (true, maybe_id.replace("Begin", ""))
+        } else if maybe_id.ends_with("End") {
+            return Ok((input, None));
+        } else {
+            (false, maybe_id.to_string())
+        };
+
+        let id = TagId::lookup(&name)
+            .map_err(|_| Err::Error(error_position!(input, ErrorKind::Fail)))?;
 
         // println!("\n\n\nParsing \"{input}\" for {id:?}");
 
@@ -79,11 +84,9 @@ impl Tag {
         ))(input)?;
         // println!("\n\n\nParsing \"{input}\" for {id:?}{maybe_params:?}");
 
-        let (input, maybe_symbols) = opt(delimited(
-            terminated(char('('), ws),
-            |s| parse_symbols(s, context.clone()),
-            terminated(char(')'), ws),
-        ))(input)?;
+        let (input, maybe_symbols) = opt(
+            |s| parse_delimited_symbols(s, context.clone(), '(', ')', skip_start_delimiter),
+        )(input)?;
         // println!("\n\nParsing \"{input}\" for {id:?}
         //   params: {maybe_params:?}
         //   symbols: {maybe_symbols:?}
@@ -99,7 +102,7 @@ impl Tag {
         context.add_tag(tag.clone());
 
         // println!("\n\n\nParsed \"{tag:?}\"");
-        Ok((input, tag))
+        Ok((input, Some(tag)))
     }
 
     pub fn has_params(&self) -> bool {
@@ -155,7 +158,7 @@ mod tests {
 
         assert_eq!(input, "");
 
-        Ok(tag)
+        Ok(tag.unwrap())
     }
 
     #[test]
@@ -331,6 +334,13 @@ mod tests {
                 "\\text<\"dolce\", dy=13, fattrib=\"i\", fsize=10pt>(g/4)",
             )?,
             TagId::Text,
+        );
+
+        assert_tag_id(
+            parse_tag(
+                "\\lyrics<\"Dans un som-meil  que char mait ton i-ma-ge\">(\\dim<dy=15, deltaY=2>(c/2 b1/4))",
+            )?,
+            TagId::Lyrics,
         );
 
         Ok(())

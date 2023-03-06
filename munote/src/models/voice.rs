@@ -1,16 +1,12 @@
-use nom::{
-    character::complete::char,
-    sequence::{delimited, terminated},
-    IResult,
-};
+use nom::IResult;
 
 use crate::{
     context::ContextPtr,
-    models::ws,
-    symbol::{parse_symbols, Symbol},
+    symbol::Symbol,
     tag::Tag,
     tag_id::TagId,
 };
+use crate::symbol::parse_delimited_symbols;
 
 #[derive(Debug)]
 pub struct Voice {
@@ -24,11 +20,7 @@ impl Voice {
     }
 
     pub fn parse<'a>(input: &str, context: ContextPtr) -> IResult<&str, Self> {
-        let (input, symbols) = delimited(
-            terminated(char('['), ws),
-            |s| parse_symbols(s, context.clone()),
-            terminated(char(']'), ws),
-        )(input)?;
+        let (input, symbols) = parse_delimited_symbols(input, context.clone(), '[', ']', false)?;
 
         let ctx = context.borrow();
         let staff = ctx.get_tag(TagId::Staff).and_then(Tag::as_number);
@@ -111,4 +103,16 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn convert_begin_end() -> Result<()> {
+        let voice = parse_voice("[ \\tieBegin d e \\tieEnd ]")?;
+        assert_eq!(voice.symbols.len(), 1);
+
+        // assert!(tag.symbols[0].equals(&Note::from_name(Diatonic::D)));
+        // assert!(tag.symbols[1].equals(&Note::from_name(Diatonic::E)));
+
+        Ok(())
+    }
+
 }
