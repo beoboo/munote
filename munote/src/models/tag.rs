@@ -1,8 +1,8 @@
 use std::any::Any;
 use std::str::FromStr;
-use anyhow::bail;
 
 use nom::{branch::alt, bytes::complete::tag, character::complete::{alpha1, char}, combinator::opt, error_position, IResult, multi::many0, sequence::{delimited, preceded, terminated}};
+use nom::character::complete::u8;
 use nom::Err;
 use nom::error::ErrorKind;
 use serde::Deserialize;
@@ -18,14 +18,23 @@ use crate::{
 use crate::event::parse_delimited_events;
 use crate::models::Span;
 
-#[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
-#[serde(rename_all="camelCase")]
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum TagType {
     Any,
     Position,
-    Begin,
-    End,
+    Begin(u8),
+    End(u8),
     Range,
+}
+
+impl PartialEq for TagType {
+    fn eq(&self, other: &Self) -> bool {
+        match *self {
+            TagType::Position => matches!(other, TagType::Position | TagType::Any),
+            _ => *other != TagType::Position,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -78,6 +87,9 @@ impl Tag {
             alt((terminated(preceded(char('\\'), alpha1), ws), tag("|"))
             )(input)?;
 
+        let maybe_id = maybe_id.fragment();
+        let (input, suffix) = parse_suffix(input).unwrap_or_else(|_| (input, 0));
+
         let (input, maybe_params) = opt(delimited(
             terminated(char('<'), ws),
             |s| parse_params(s),
@@ -89,28 +101,31 @@ impl Tag {
             |s| parse_delimited_events(s, context.clone(), '(', ')'),
         )(input)?;
 
-        let maybe_id = maybe_id.fragment();
+        let mut ctx = context.borrow_mut();
 
         // TODO: revisit this, its awful like this
-        let (ty, maybe_id) = if maybe_id.ends_with("Begin") {
+        let mut ty = TagType::Position;
+        let maybe_id = if maybe_id.ends_with("Begin") {
             if TagId::from_str(maybe_id).is_ok() {
-                (TagType::Position, maybe_id.to_string())
+                maybe_id.to_string()
             } else {
-                (TagType::Begin, maybe_id.replace("Begin", ""))
+                ty = TagType::Begin(suffix);
+                maybe_id.replace("Begin", "")
             }
         } else if maybe_id.ends_with("End") {
             if TagId::from_str(maybe_id).is_ok() {
-                (TagType::Position, maybe_id.to_string())
+                maybe_id.to_string()
             } else {
-                (TagType::End, maybe_id.replace("End", ""))
+                ty = TagType::End(suffix);
+                maybe_id.replace("End", "")
             }
-        } else if maybe_events.is_some(){
-            (TagType::Range, maybe_id.to_string())
         } else {
-            (TagType::Position, maybe_id.to_string())
-        };
+            if maybe_events.is_some() {
+                ty = TagType::Range;
+            };
 
-        let ctx = context.borrow();
+            maybe_id.to_string()
+        };
 
         let id = ctx.lookup_tag(&maybe_id)
             .map_err(|e| {
@@ -118,11 +133,11 @@ impl Tag {
                 Err::Error(error_position!(input, ErrorKind::Fail))
             })?;
 
-        println!("\n\nParsing \"{input}\" for {id:?} {ty:?}
-          params: {maybe_params:?}
-          events: {maybe_events:?}
-         \n");
-
+        // println!("\n\nParsing \"{input}\" for {id:?} {ty:?}
+        //   params: {maybe_params:?}
+        //   events: {maybe_events:?}
+        //  \n");
+        //
         let tag = Tag::new(
             id,
             ty,
@@ -130,10 +145,13 @@ impl Tag {
             maybe_events.unwrap_or_default(),
         );
 
-        if !ctx.validate(&tag) {
-            println!("Could not validate {tag:?}");
+        if let Err(e) = ctx.validate(&tag) {
+            println!("Could not validate \"{:?}\": {e}", tag.id);
+
             return Err(Err::Error(error_position!(input, ErrorKind::Fail)));
         }
+
+        ctx.add_tag(tag.clone());
 
         Ok((input, tag))
     }
@@ -153,6 +171,10 @@ impl Tag {
             None
         }
     }
+}
+
+fn parse_suffix(input: Span) -> IResult<Span, u8> {
+    preceded(char(':'), u8)(input)
 }
 
 fn parse_params(input: Span) -> IResult<Span, Vec<TagParam>> {
@@ -204,16 +226,26 @@ mod tests {
     }
 
     #[test]
+    fn parse_suffix() -> Result<()> {
+        let tag = parse_tag("\\tieBegin:1(a)")?;
+
+        assert_eq!(tag.id, TagId::Tie);
+        assert_eq!(tag.ty, TagType::Begin(1));
+
+        Ok(())
+    }
+
+    #[test]
     fn parse_begin_end() -> Result<()> {
         let tag = parse_tag("\\tieBegin")?;
 
         assert_eq!(tag.id, TagId::Tie);
-        assert_eq!(tag.ty, TagType::Begin);
+        assert_eq!(tag.ty, TagType::Begin(0));
 
         let tag = parse_tag("\\tieEnd")?;
 
         assert_eq!(tag.id, TagId::Tie);
-        assert_eq!(tag.ty, TagType::End);
+        assert_eq!(tag.ty, TagType::End(0));
 
         Ok(())
     }

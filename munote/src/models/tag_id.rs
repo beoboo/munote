@@ -1,6 +1,5 @@
-use std::str::FromStr;
-
 use parse_display::FromStr;
+
 use serde::Deserialize;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, FromStr, Deserialize)]

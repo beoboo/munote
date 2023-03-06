@@ -4,10 +4,10 @@ use std::{
     rc::Rc,
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
+
 use crate::{duration::Duration, tag::Tag, tag_id::TagId};
-use crate::range_tag::RangeTag;
-use crate::tag_definitions::{TagDefinition, TagDefinitions};
+use crate::tag_definitions::TagDefinitions;
 use crate::tag_validator::TagValidator;
 
 pub struct Ptr<T> {
@@ -30,15 +30,15 @@ impl<T> Ptr<T> {
     }
 
     pub fn borrow<'a>(&'a self) -> Ref<'a, T>
-    where
-        T: 'a,
+        where
+            T: 'a,
     {
         (*self.inner).borrow()
     }
 
     pub fn borrow_mut<'a>(&'a mut self) -> RefMut<'a, T>
-    where
-        T: 'a,
+        where
+            T: 'a,
     {
         (*self.inner).borrow_mut()
     }
@@ -55,7 +55,7 @@ pub struct Context {
     pub validator: TagValidator,
     pub octave: i8,
     pub duration: Duration,
-    pub range_tags: HashMap<TagId, RangeTag>,
+    pub tags: HashMap<TagId, Tag>,
 }
 
 impl Default for Context {
@@ -68,25 +68,25 @@ impl Default for Context {
             validator,
             octave: 1,
             duration: Duration::default(),
-            range_tags: HashMap::new(),
+            tags: HashMap::new(),
         }
     }
 }
 
 impl Context {
-    pub fn add_tag(&mut self, tag: RangeTag) {
-        self.range_tags.insert(tag.id, tag);
+    pub fn add_tag(&mut self, tag: Tag) {
+        self.tags.insert(tag.id, tag);
     }
 
-    pub fn get_tag(&self, id: TagId) -> Option<&RangeTag> {
-        self.range_tags.get(&id)
+    pub fn get_tag(&self, id: TagId) -> Option<&Tag> {
+        self.tags.get(&id)
     }
 
     pub fn lookup_tag(&self, name: &str) -> Result<TagId> {
         self.defs.lookup(name)
     }
 
-    pub fn validate(&self, tag: &Tag) -> bool {
+    pub fn validate(&self, tag: &Tag) -> Result<()> {
         self.validator.validate(tag, &self.defs)
     }
 }
@@ -101,7 +101,7 @@ mod tests {
     fn add_tag() {
         let mut ctx = Context::default();
 
-        let tag = RangeTag::from_id(TagId::Bar, 1, 2);
+        let tag = Tag::from_id(TagId::Bar);
         ctx.add_tag(tag.clone());
 
         assert_eq!(ctx.get_tag(TagId::Bar).unwrap(), &tag);

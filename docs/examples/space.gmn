@@ -15,5 +15,5 @@ It makes also use of the **\special** tag.
 	{ \stemsDown  g, \headsReverse(d) \tieEnd, \tieBegin h } 
 	{ h \tieEnd, c}  
 	\tie (f#/4 \acc<"none">(f#/4..)) 
-	\special<"g", dy=-1, dx=-5> \special<"\166", dy=12, dx=-6.5> \space<2cm> _/4 { e/16, h } 
+	\special<"g", dy=-1, dx=-5> \special<"\166", dy=12, dx=-6.5> \space<2cm> _/4 { e/16, h }
 ]

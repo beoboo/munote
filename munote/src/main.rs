@@ -19,19 +19,25 @@ fn main() -> Result<()> {
 
     if path.is_dir() {
         let dir = fs::read_dir(path)?;
-        for file in dir {
-            parse_score(&file.unwrap().path())?;
+        let count = dir.count();
+        println!("Found {} files", count);
+
+        let dir = fs::read_dir(path)?;
+        for (i, file) in dir.into_iter().enumerate() {
+            let i = i + 1;
+            parse_score(&format!("{i}/{count}"), &file.unwrap().path())?;
         }
     } else {
-        parse_score(path)?;
+        parse_score("", path)?;
     }
 
     Ok(())
 }
 
-fn parse_score(path: &Path) -> Result<Score> {
+fn parse_score(index: &str, path: &Path) -> Result<Score> {
     let display = path.display();
-    println!("Parsing: {}...\n", display);
+
+    println!("Parsing \"{}\" ({})... \n", display, index);
 
     let content = fs::read_to_string(path)?;
     let score = Score::parse(&content, ContextPtr::default())?;

@@ -283,7 +283,7 @@ special:
 #########################
 # Notes
 cluster:
-  type: "position"
+  type: "range"
   params:
     - { name: hdx, type: "unit", default: 0hs, optional: true }
     - { name: hdy, type: "unit", default: 0hs, optional: true }
@@ -506,7 +506,7 @@ composer:
     - { name: pageformat, type: "string", default: "53", optional: true, validate: "pageFormat" }
 
 fingering:
-  type: "position"
+  type: "range"
   alternatives: [ "fing" ]
   params:
     - { name: text, type: "string", default: "", optional: true }

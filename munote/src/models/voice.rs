@@ -6,6 +6,8 @@ use crate::{
 };
 use crate::event::parse_delimited_events;
 use crate::models::Span;
+use crate::tag::Tag;
+use crate::tag_id::TagId;
 
 #[derive(Debug)]
 pub struct Voice {
@@ -23,7 +25,7 @@ impl Voice {
         let (input, events) = parse_delimited_events(input, context.clone(), '[', ']')?;
 
         let ctx = context.borrow();
-        let staff = None;//ctx.get_tag(TagId::Staff).and_then(Tag::as_number);
+        let staff = ctx.get_tag(TagId::Staff).and_then(Tag::as_number);
 
         Ok((input, Voice::new(staff.unwrap_or(1.0) as u8, events)))
     }

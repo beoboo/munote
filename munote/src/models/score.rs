@@ -53,7 +53,7 @@ impl Score {
     }
 
     pub fn parse(input: &str, context: ContextPtr) -> Result<Self> {
-        let mut input = all_comments(input)?;
+        let input = all_comments(input)?;
 
         let (_, score) = preceded(ws, |s| parse_internal(s, context.clone()))(Span::new(input.as_str()))
             .map_err(|e| anyhow!("{e}"))?;

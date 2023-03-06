@@ -8,7 +8,6 @@ use nom::{
     sequence::{delimited, terminated, Tuple},
 };
 use nom::sequence::tuple;
-use regex::internal::Input;
 
 use crate::{
     models::{string, ws},
@@ -55,9 +54,9 @@ impl TagParam {
 }
 
 fn parse_string(input: Span) -> IResult<Span, Span> {
-    let not_quote_slash = is_not("\"\\");
+    let not_quote = is_not("\"");
 
-    let check_string = verify(not_quote_slash, |s: &Span| !s.is_empty());
+    let check_string = verify(not_quote, |s: &Span| !s.is_empty());
 
     let (input, s) = delimited(char('"'), check_string, char('"'))(input)?;
 
@@ -126,6 +125,7 @@ mod tests {
     fn parse_string_param() -> Result<()> {
         assert_eq!(parse_tag_param("\"2/4\"")?, TagParam::String("2/4".into()));
         assert_eq!(parse_tag_param("\"F#m7\"")?, TagParam::String("F#m7".into()));
+        assert_eq!(parse_tag_param("\"\\166\"")?, TagParam::String("\\166".into()));
 
         Ok(())
     }

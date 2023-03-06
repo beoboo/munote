@@ -6,7 +6,6 @@ use nom::{
     character::complete::{i8, one_of},
     combinator::{map, map_res, opt, value},
     IResult,
-    Parser,
 };
 use parse_display::FromStr;
 

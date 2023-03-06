@@ -23,7 +23,6 @@ pub mod tag_param;
 pub mod unit;
 pub mod voice;
 pub mod error;
-pub mod range_tag;
 pub mod tag_validator;
 pub mod tag_definitions;
 
