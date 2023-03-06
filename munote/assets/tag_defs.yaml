@@ -276,11 +276,21 @@ space:
 
 special:
   type: "position"
-  validator: "special_validator"
   params:
-    - { name: char, type: "string", default: "", optional: false }
+    - { name: char, type: "string", default: "", optional: false, validator: "special_char_validator" }
 
 
+#########################
+# Notes
+
+#########################
+# Ornaments
+
+#########################
+# Repeat Signs
+
+#########################
+# Tempo
 accelerando:
   type: "range"
   alternatives: ["accel"]
@@ -288,3 +298,21 @@ accelerando:
     - { name: before, type: "string", default: "", optional: true }
     - { name: after, type: "string", default: "", optional: true }
     - { name: dx2, type: "unit", default: 0, optional: true }
+
+ritardando:
+  type: "range"
+  alternatives: ["rit"]
+  params:
+    - { name: before, type: "string", default: "", optional: true }
+    - { name: after, type: "string", default: "", optional: true }
+    - { name: dx2, type: "unit", default: 0, optional: true }
+
+tempo:
+  type: "position"
+  params:
+    - { name: tempo, type: "string", default: "", optional: false, validator: "tempo_validator" }
+    - { name: bpm, type: "string", default: "", optional: true }
+
+#########################
+# Text
+
