@@ -1,24 +1,27 @@
 use std::collections::HashMap;
+
 use anyhow::Result;
 use lazy_static::lazy_static;
-use crate::tag::TagType;
-use crate::tag_id::TagId;
-use crate::tag_param::TagParam;
-use yaml_rust::{Yaml, YamlLoader};
-use crate::tag::Tag;
 use serde::Deserialize;
 
+use crate::tag::TagType;
+use crate::tag_id::TagId;
+
 #[derive(Deserialize)]
-#[serde(rename_all="camelCase")]
+#[serde(rename_all = "camelCase")]
 pub enum TagParamType {
+    Boolean,
+    Float,
+    Integer,
     String,
+    StringOrInt,
     Unit,
 }
 
 #[derive(Deserialize)]
 pub struct TagParamDefinition {
     pub name: String,
-    #[serde(rename="type")]
+    #[serde(rename = "type")]
     pub ty: TagParamType,
     // default: TagParamDefaultValue,
     pub optional: bool,
@@ -26,11 +29,12 @@ pub struct TagParamDefinition {
 
 #[derive(Deserialize)]
 pub struct TagDefinition {
-    #[serde(rename="type")]
+    #[serde(rename = "type")]
     pub ty: TagType,
+    #[serde(default = "Vec::new")]
     pub alternatives: Vec<String>,
-    // allow_begin_end: bool,
-    pub params: Vec<TagParamDefinition>
+    #[serde(default = "Vec::new")]
+    pub params: Vec<TagParamDefinition>,
 }
 
 // #[derive(Deserialize)]

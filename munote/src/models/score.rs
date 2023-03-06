@@ -4,9 +4,9 @@ use anyhow::{anyhow, Result};
 use nom::{
     character::complete::{char, one_of},
     combinator::peek,
+    IResult,
     multi::many0,
     sequence::{delimited, preceded, terminated},
-    IResult,
 };
 
 use crate::{
@@ -74,7 +74,7 @@ impl Score {
             _ => {
                 let (input, voice) = Voice::parse(&input, context)?;
                 (input, vec![voice])
-            },
+            }
         };
 
         Ok((input, Self::new(voices)))
@@ -153,5 +153,11 @@ mod tests {
         assert_eq!(score.staffs.len(), 1);
 
         Ok(())
+    }
+
+    #[test]
+    fn invalid_score() {
+        assert!(parse_score("{ [ \\unknown ] }").is_err());
+        assert!(parse_score("{ [ \\accelerando ] }").is_err());
     }
 }

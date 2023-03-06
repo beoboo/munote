@@ -1,4 +1,286 @@
-#defs:
+#########################
+# Accidentals
+accidental:
+  type: "range"
+  alternatives: ["acc"]
+  params:
+    - { name: style, type: "string", default: "", optional: true }
+
+alter:
+  type: "any"
+  params:
+    - { name: detune, type: "float", default: 0, optional: false }
+
+#########################
+# Articulations
+accent:
+  type: "range"
+  alternatives: ["acc"]
+  params:
+    - { name: position, type: "string", default: "", optional: true }
+
+bow:
+  type: "any"
+  params:
+    - { name: type, type: "string", default: "up", optional: false }
+    - { name: position, type: "string", default: "above", optional: true }
+
+breathMark:
+  type: "position"
+
+fermata:
+  type: "any"
+  params:
+    - { name: type, type: "string", default: "regular", optional: false }
+    - { name: position, type: "string", default: "above", optional: true }
+
+glissando:
+  type: "range"
+  params:
+    - { name: dx1, type: "unit", default: 0, optional: true }
+    - { name: dy1, type: "unit", default: 0, optional: true }
+    - { name: dx2, type: "unit", default: 0, optional: true }
+    - { name: dy2, type: "unit", default: 0, optional: true }
+    - { name: fill, type: "boolean", default: false, optional: true }
+    - { name: thickness, type: "unit", default: 0.3, optional: true }
+
+marcato:
+  type: "any"
+  params:
+    - { name: position, type: "string", default: "above", optional: true }
+
+pedalOn:
+  type: "position"
+
+pedalOff:
+  type: "position"
+
+pizzicato:
+  type: "any"
+  alternatives: ["pizz"]
+  params:
+    - { name: type, type: "string", default: "lefthand", optional: false }
+    - { name: position, type: "string", default: "above", optional: true }
+
+slur:
+  type: "range"
+  alternatives: ["sl"]
+  params:
+    - { name: curve, type: "string", default: "", optional: true }
+    - { name: dx1, type: "unit", default: 2hs, optional: true }
+    - { name: dy1, type: "unit", default: 1hs, optional: true }
+    - { name: dx2, type: "unit", default: -2hs, optional: true }
+    - { name: dy2, type: "unit", default: 1hs, optional: true }
+    - { name: r3, type: "float", default: 0.5, optional: true }
+    - { name: h, type: "unit", default: 2hs, optional: true }
+
+staccato:
+  type: "any"
+  alternatives: ["stacc"]
+  params:
+    - { name: type, type: "string", default: "regular", optional: false }
+    - { name: position, type: "string", default: "", optional: true }
+
+tenuto:
+  type: "any"
+  alternatives: ["stacc"]
+  params:
+    - { name: type, type: "string", default: "regular", optional: false }
+    - { name: position, type: "string", default: "", optional: true }
+
+
+#########################
+# Barlines
+bar:
+  type: "position"
+  alternatives: ["|"]
+  params:
+    - { name: displayMeasNum, type: "boolean", default: false, optional: true }
+    - { name: hidden, type: "boolean", default: false, optional: true }
+    - { name: measNum, type: "integer", default: 0, optional: true }
+    - { name: numDx, type: "unit", default: 0, optional: true }
+    - { name: numDy, type: "unit", default: 0, optional: true }
+
+barFormat:
+  type: "position"
+  params:
+    - { name: style, type: "string", default: "staff", optional: true }
+    - { name: range, type: "string", default: "", optional: true }
+
+doubleBar:
+  type: "position"
+
+endBar:
+  type: "position"
+
+#########################
+# Beaming
+beam:
+  type: "range"
+  alternatives: ["bm", "b"]
+  params:
+    - { name: dy1, type: "unit", default: 0, optional: true }
+    - { name: dy2, type: "unit", default: 0, optional: true }
+    - { name: dy, type: "unit", default: 0, optional: true }
+
+beamsAuto:
+  type: "position"
+
+beamsOff:
+  type: "position"
+
+beamsFull:
+  type: "position"
+
+fBeam:
+  type: "range"
+  params:
+    - { name: duration, type: "string", default: 0, optional: true }
+    - { name: drawDuration, type: "boolean", default: false, optional: true }
+
+#########################
+# Clef Key Meter
+clef:
+  type: "position"
+  params:
+    - { name: type, type: "string", default: "treble", optional: false }
+
+key:
+  type: "position"
+  params:
+    - { name: key, type: "stringOrInt", default: "", optional: false }
+    - { name: hideNaturals, type: "boolean", default: false, optional: true }
+    - { name: free, type: "string", default: "", optional: true }
+
+meter:
+  type: "position"
+  params:
+    - { name: type, type: "string", default: "4/4", optional: false }
+    - { name: autoBarLines, type: "boolean", default: on, optional: true }
+    - { name: autoMeasuresNum, type: "string", default: "off", optional: true }
+    - { name: group, type: "boolean", default: off, optional: true }
+
+#########################
+# Dynamics
+crescendo:
+  type: "range"
+  alternatives: ["cresc"]
+  params:
+    - { name: dx1, type: "unit", default: 0, optional: true }
+    - { name: dy1, type: "unit", default: 0, optional: true }
+    - { name: deltaY, type: "unit", default: 3, optional: true }
+    - { name: thickness, type: "unit", default: 0.16, optional: true }
+    - { name: autopos, type: "string", default: "off", optional: true }
+
+decrescendo:
+  type: "range"
+  alternatives: ["decresc", "diminuendo", "dim"]
+  params:
+    - { name: dx1, type: "unit", default: 0, optional: true }
+    - { name: dy1, type: "unit", default: 0, optional: true }
+    - { name: deltaY, type: "unit", default: 3, optional: true }
+    - { name: thickness, type: "unit", default: 0.16, optional: true }
+    - { name: autopos, type: "string", default: "off", optional: true }
+
+intensity:
+  type: "position"
+  alternatives: ["intens", "i"]
+  params:
+    - { name: type, type: "string", default: "", optional: false }
+    - { name: before, type: "string", default: "", optional: true }
+    - { name: after, type: "string", default: "", optional: true }
+    - { name: autopos, type: "boolean", default: off, optional: true }
+
+#########################
+# Layout
+accolade:
+  type: "position"
+  alternatives: ["accol"]
+  params:
+    - { name: id, type: "integer", default: 0, optional: false }
+    - { name: range, type: "string", default: "", optional: false }
+    - { name: type, type: "string", default: "standard", optional: true }
+
+newPage:
+  type: "position"
+#  alternatives: ["newSystem"]
+
+newLine:
+  type: "position"
+  alternatives: ["newSystem"]
+
+pageFormat:
+  type: "position"
+  alternatives: ["accol"]
+  validator: "page_format_validator"
+  params:
+    - { name: type, type: "string", default: "", optional: false }
+    - { name: w, type: "unit", default: "", optional: false }
+    - { name: h, type: "unit", default: "", optional: false }
+    - { name: lm, type: "unit", default: 2cm, optional: true }
+    - { name: tm, type: "unit", default: 5cm, optional: true }
+    - { name: rm, type: "unit", default: 2cm, optional: true }
+    - { name: bm, type: "unit", default: 3cm, optional: true }
+
+staff:
+  type: "position"
+  params:
+    - { name: id, type: "integer", default: 0, optional: false }
+    - { name: dy, type: "unit", default: 0, optional: true }
+
+staffFormat:
+  type: "position"
+  params:
+    - { name: style, type: "string", default: "5-lines", optional: true }
+    - { name: lineThickness, type: "float", default: 0.08, optional: true }
+    - { name: distance, type: "unit", default: 0hs, optional: true }
+
+staffOff:
+  type: "position"
+
+systemFormat:
+  type: "position"
+  params:
+    - { name: dx, type: "unit", default: 0hs, optional: true }
+
+#########################
+# Miscellaneous
+auto:
+  type: "position"
+  alternatives: ["set"]
+  params:
+    - { name: autoEndBar, type: "boolean", default: on, optional: true }
+    - { name: endBar, type: "boolean", default: on, optional: true }
+    - { name: autoPageBreak, type: "boolean", default: on, optional: true }
+    - { name: pageBreak, type: "boolean", default: on, optional: true }
+    - { name: autoSystemBreak, type: "boolean", default: on, optional: true }
+    - { name: systemBreak, type: "boolean", default: on, optional: true }
+    - { name: autoClefKeyMeterOrder, type: "boolean", default: on, optional: true }
+    - { name: clefKeyMeterOrder, type: "boolean", default: on, optional: true }
+    - { name: autoLyricsPos, type: "boolean", default: off, optional: true }
+    - { name: lyricsAutoPos, type: "boolean", default: off, optional: true }
+    - { name: autoInstrPos, type: "boolean", default: off, optional: true }
+    - { name: instrAutoPos, type: "boolean", default: off, optional: true }
+    - { name: autoIntensPos, type: "boolean", default: off, optional: true }
+    - { name: intensAutoPos, type: "boolean", default: off, optional: true }
+    - { name: autoHideTiedAccidentals, type: "boolean", default: on, optional: true }
+    - { name: harmonyPos, type: "boolean", default: false, optional: true }
+    - { name: fingeringPos, type: "boolean", default: false, optional: true }
+    - { name: fingeringSize, type: "float", default: 0, optional: true }
+    - { name: resolveMultiVoiceCollisions, type: "boolean", default: off, optional: true }
+
+space:
+  type: "position"
+  params:
+    - { name: dd, type: "unit", default: 0, optional: false }
+
+special:
+  type: "position"
+  validator: "special_validator"
+  params:
+    - { name: char, type: "string", default: "", optional: false }
+
+
 accelerando:
   type: "range"
   alternatives: ["accel"]
@@ -6,9 +288,3 @@ accelerando:
     - { name: before, type: "string", default: "", optional: true }
     - { name: after, type: "string", default: "", optional: true }
     - { name: dx2, type: "unit", default: 0, optional: true }
-
-accent:
-  type: "range"
-  alternatives: ["acc"]
-  params:
-    - { name: position, type: "string", default: "", optional: true }

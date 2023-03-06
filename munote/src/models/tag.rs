@@ -1,4 +1,5 @@
 use std::any::Any;
+use anyhow::bail;
 
 use nom::{branch::alt, bytes::complete::tag, character::complete::{alpha1, char}, combinator::opt, error_position, IResult, multi::many0, sequence::{delimited, preceded, terminated}};
 use nom::Err;
@@ -18,6 +19,7 @@ use crate::event::parse_delimited_events;
 #[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
 #[serde(rename_all="camelCase")]
 pub enum TagType {
+    Any,
     Position,
     Begin,
     End,
@@ -109,6 +111,10 @@ impl Tag {
             maybe_params.unwrap_or_default(),
             maybe_events.unwrap_or_default(),
         );
+
+        if !context.borrow().validate(&tag) {
+            return Err(Err::Error(error_position!(input, ErrorKind::Fail)));
+        }
 
         Ok((input, tag))
     }

@@ -6,6 +6,8 @@ use std::{
 
 use crate::{duration::Duration, tag::Tag, tag_id::TagId};
 use crate::range_tag::RangeTag;
+use crate::tag_definitions::{TagDefinition, TagDefinitions};
+use crate::tag_validator::TagValidator;
 
 pub struct Ptr<T> {
     inner: Rc<RefCell<T>>,
@@ -48,6 +50,8 @@ impl<T: Default> Default for Ptr<T> {
 }
 
 pub struct Context {
+    pub defs: TagDefinitions,
+    pub validator: TagValidator,
     pub octave: i8,
     pub duration: Duration,
     pub range_tags: HashMap<TagId, RangeTag>,
@@ -55,7 +59,12 @@ pub struct Context {
 
 impl Default for Context {
     fn default() -> Self {
+        let defs = TagDefinitions::default();
+        let validator = TagValidator::default();
+
         Self {
+            defs,
+            validator,
             octave: 1,
             duration: Duration::default(),
             range_tags: HashMap::new(),
@@ -70,6 +79,10 @@ impl Context {
 
     pub fn get_tag(&self, id: TagId) -> Option<&RangeTag> {
         self.range_tags.get(&id)
+    }
+
+    pub fn validate(&self, tag: &Tag) -> bool {
+        self.validator.validate(tag, &self.defs)
     }
 }
 
