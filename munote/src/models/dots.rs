@@ -1,7 +1,8 @@
 use nom::{bytes::complete::take_while_m_n, IResult, Parser};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub enum Dots {
+    #[default]
     None,
     Single,
     Double,
