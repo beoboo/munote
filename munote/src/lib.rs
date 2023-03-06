@@ -1,4 +1,6 @@
+pub use models::*;
 pub use score::*;
 
-mod score;
+mod models;
 mod parser;
+mod score;

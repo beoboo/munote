@@ -1,6 +1,6 @@
 use std::string::String;
 
-use cucumber::{given, when, then};
+use cucumber::{given, then, when};
 
 use crate::MusicWorld;
 
