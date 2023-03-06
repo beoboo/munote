@@ -1,16 +1,18 @@
 use nom::{character::complete::char, sequence::delimited, IResult};
 
 use crate::symbol::parse_symbols;
-use crate::{context::ContextPtr, models::ws, note::Note, symbol::Symbol};
+use crate::{context::ContextPtr, models::ws, symbol::Symbol};
+use crate::tag::{Tag, TagId};
 
 #[derive(Debug)]
 pub struct Voice {
+    pub staff: u8,
     pub symbols: Vec<Box<dyn Symbol>>,
 }
 
 impl Voice {
-    pub fn new(symbols: Vec<Box<dyn Symbol>>) -> Self {
-        Self { symbols }
+    pub fn new(staff: u8, symbols: Vec<Box<dyn Symbol>>) -> Self {
+        Self { staff, symbols }
     }
 
     pub fn parse<'a>(input: &str, context: ContextPtr) -> IResult<&str, Self> {
@@ -20,7 +22,10 @@ impl Voice {
             char(']'),
         )(input)?;
 
-        Ok((input, Voice::new(symbols)))
+        let ctx = context.borrow();
+        let staff = ctx.get_tag(TagId::Staff).and_then(Tag::as_number);
+
+        Ok((input, Voice::new(staff.unwrap_or(1.0) as u8, symbols)))
     }
 }
 
@@ -28,14 +33,16 @@ impl Voice {
 mod tests {
     use anyhow::{anyhow, Result};
 
-    use crate::{chord::Chord, note::Diatonic, rest::Rest};
+    use crate::{chord::Chord, note::Diatonic, note::Note, rest::Rest};
 
     use super::*;
 
     fn parse_voice(input: &str) -> Result<Voice> {
         let context = ContextPtr::default();
 
-        let (_, voice) = Voice::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+        let (input, voice) = Voice::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+
+        assert!(input.is_empty());
 
         Ok(voice)
     }
@@ -73,6 +80,15 @@ mod tests {
         ]);
 
         assert!(voice.symbols[0].equals(&chord));
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_tag() -> Result<()> {
+        let voice = parse_voice("[ \\meter<\"2/4\"> a1 ]")?;
+
+        assert_eq!(voice.symbols.len(), 2);
 
         Ok(())
     }

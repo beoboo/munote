@@ -587,7 +587,9 @@ dependencies = [
  "anyhow",
  "munote-derive",
  "nom",
+ "nom_locate",
  "parse-display",
+ "regex",
  "strum",
 ]
 

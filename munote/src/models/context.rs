@@ -1,7 +1,9 @@
 use std::cell::{Ref, RefCell, RefMut};
+use std::collections::HashMap;
 
 use crate::duration::Duration;
 use std::rc::Rc;
+use crate::tag::{Tag, TagId};
 
 pub struct Ptr<T> {
     inner: Rc<RefCell<T>>,
@@ -46,6 +48,7 @@ impl<T: Default> Default for Ptr<T> {
 pub struct Context {
     pub octave: i8,
     pub duration: Duration,
+    pub tags: HashMap<TagId, Tag>,
 }
 
 impl Default for Context {
@@ -53,8 +56,35 @@ impl Default for Context {
         Self {
             octave: 1,
             duration: Duration::default(),
+            tags: HashMap::new(),
         }
     }
 }
 
+impl Context {
+    pub fn add_tag(&mut self, tag: Tag) {
+        self.tags.insert(tag.id,tag);
+    }
+
+    pub fn get_tag(&self, id: TagId) -> Option<&Tag> {
+        self.tags.get(&id)
+    }
+}
+
 pub type ContextPtr = Ptr<Context>;
+
+#[cfg(test)]
+mod tests {
+    use crate::tag::TagId;
+    use super::*;
+
+    #[test]
+    fn add_tag() {
+        let mut ctx = Context::default();
+
+        let tag = Tag::from_id(TagId::Bar);
+        ctx.add_tag(tag.clone());
+
+        assert_eq!(ctx.get_tag(TagId::Bar).unwrap(), &tag);
+    }
+}

@@ -10,6 +10,10 @@ pub struct MusicWorld {
 
 impl MusicWorld {
     pub fn count_staffs(&self) -> usize {
-        0
+        if let Some(score) = &self.score {
+            score.staffs.len()
+        } else {
+            0
+        }
     }
 }

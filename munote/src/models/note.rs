@@ -12,12 +12,12 @@ use parse_display::FromStr;
 
 use crate::{accidentals::Accidentals, context::ContextPtr, dots::Dots, duration::Duration, symbol::Symbol};
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Note {
     pub name: NoteName,
-    octave: i8,
+    pub octave: i8,
     pub accidentals: Accidentals,
-    duration: Duration,
+    pub duration: Duration,
     pub dots: Dots,
 }
 
@@ -83,6 +83,10 @@ impl Symbol for Note {
 
     fn equals(&self, other: &dyn Symbol) -> bool {
         other.as_any().downcast_ref::<Self>().map_or(false, |a| self == a)
+    }
+
+    fn clone_box(&self) -> Box<dyn Symbol> {
+        Box::new((*self).clone())
     }
 
     fn octave(&self) -> i8 {
@@ -180,7 +184,7 @@ impl From<Solfege> for NoteName {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum NoteName {
     Diatonic(Diatonic),
     Chromatic(Chromatic),
@@ -200,7 +204,9 @@ mod tests {
     fn parse_note(input: &str) -> Result<Note> {
         let context = ContextPtr::default();
 
-        let (_, note) = Note::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+        let (input, note) = Note::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+
+        assert!(input.is_empty());
 
         Ok(note)
     }

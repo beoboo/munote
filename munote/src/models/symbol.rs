@@ -10,15 +10,24 @@ use crate::context::ContextPtr;
 use crate::models::ws;
 use crate::note::Note;
 use crate::rest::Rest;
+use crate::tag::Tag;
 
 pub trait Symbol: Debug {
     fn as_any(&self) -> &dyn Any;
 
     fn equals(&self, _: &dyn Symbol) -> bool;
 
+    fn clone_box(&self) -> Box<dyn Symbol>;
+
     fn octave(&self) -> i8;
 
     fn duration(&self) -> Duration;
+}
+
+impl Clone for Box<dyn Symbol> {
+    fn clone(&self) -> Self {
+        self.clone_box()
+    }
 }
 
 pub fn parse_symbols(input: &str, context: ContextPtr) -> IResult<&str, Vec<Box<dyn Symbol>>> {
@@ -32,9 +41,14 @@ pub fn parse_symbols(input: &str, context: ContextPtr) -> IResult<&str, Vec<Box<
 }
 
 fn parse_symbol(input: &str, context: ContextPtr) -> IResult<&str, Box<dyn Symbol>> {
-    let (_, next) = peek(one_of("abcdefghilmrst{_"))(input)?;
+    let (_, next) = peek(one_of("abcdefghilmrst{_\\"))(input)?;
 
     let (input, symbol) = match next {
+        '\\' => {
+            let (input, tag) = Tag::parse(input, context)?;
+            let b: Box<dyn Symbol> = Box::new(tag);
+            (input, b)
+        },
         '{' => {
             let (input, chord) = Chord::parse(input, context)?;
             let b: Box<dyn Symbol> = Box::new(chord);

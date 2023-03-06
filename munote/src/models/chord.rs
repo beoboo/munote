@@ -15,7 +15,7 @@ use crate::{
     symbol::Symbol,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Chord {
     pub notes: Vec<Note>,
     pub duration: Duration,
@@ -30,6 +30,10 @@ impl Symbol for Chord {
         other.as_any().downcast_ref::<Self>().map_or(false, |a| self == a)
     }
 
+    fn clone_box(&self) -> Box<dyn Symbol> {
+        Box::new((*self).clone())
+    }
+
     fn octave(&self) -> i8 {
         1
     }
@@ -41,7 +45,7 @@ impl Symbol for Chord {
 
 impl Chord {
     pub fn new(notes: Vec<Note>) -> Self {
-        let duration = notes.iter().map(|n| n.duration()).max().unwrap();
+        let duration = notes.iter().map(|n| n.duration).max().unwrap();
 
         Self { notes, duration }
     }
@@ -78,7 +82,9 @@ mod tests {
     fn parse_chord(input: &str) -> Result<Chord> {
         let context = ContextPtr::default();
 
-        let (_, chord) = Chord::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+        let (input, chord) = Chord::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+
+        assert!(input.is_empty());
 
         Ok(chord)
     }

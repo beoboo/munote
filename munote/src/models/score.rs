@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use anyhow::{anyhow, Result};
 use nom::{
     character::complete::{char, one_of},
@@ -10,19 +11,52 @@ use nom::{
 use crate::models::comma;
 use crate::voice::Voice;
 use crate::{context::ContextPtr, models::ws};
+use crate::comment::all_comments;
 
 #[derive(Debug)]
 pub struct Score {
+    pub staffs: HashMap<u8, Staff>,
+}
+
+#[derive(Debug, Default)]
+pub struct Staff {
     pub voices: Vec<Voice>,
+}
+
+impl Staff {
+    pub fn add_voice(&mut self, voice: Voice) {
+        self.voices.push(voice);
+    }
 }
 
 impl Score {
     pub fn new(voices: Vec<Voice>) -> Self {
-        Self { voices }
+        let mut staffs = HashMap::new();
+
+        for voice in voices {
+            let id = voice.staff;
+
+            if !staffs.contains_key(&id) {
+                staffs.insert(id, Staff::default());
+            }
+
+            let staff = staffs.get_mut(&id).unwrap();
+
+            staff.add_voice(voice);
+        }
+
+        Self {
+            staffs
+        }
+
     }
 
     pub fn parse(input: &str, context: ContextPtr) -> Result<Self> {
-        let (_, score) = Self::parse_internal(input, context)
+        let mut input = all_comments(input)?;
+
+        input = input.replace("\n", "");
+
+        let (_, score) = Self::parse_internal(&input, context)
             .map_err(|e| anyhow!("{e}"))?;
 
         Ok(score)
@@ -74,17 +108,41 @@ mod tests {
     #[test]
     fn parse_one_voice() -> Result<()> {
         let score = parse_score("[ a1 ]")?;
+        assert_eq!(score.staffs.len(), 1);
 
-        assert_eq!(score.voices.len(), 1);
+        let staff = &score.staffs[&1];
+        assert_eq!(staff.voices.len(), 1);
 
         Ok(())
     }
 
     #[test]
-    fn parse_multiple_voice() -> Result<()> {
-        let score = parse_score("{ [ a1 ], [ b1 ] }")?;
+    fn parse_multiple_voices() -> Result<()> {
+        let score = parse_score("\
+{
+  [ a1 ],
+  [ b1 ]
+}")?;
 
-        assert_eq!(score.voices.len(), 2);
+        assert_eq!(score.staffs.len(), 1);
+
+        let staff = &score.staffs[&1];
+
+        assert_eq!(staff.voices.len(), 2);
+
+        Ok(())
+    }
+
+    #[test]
+    fn skip_comments() -> Result<()> {
+        let score = parse_score("\
+(* this is a comment *)
+{
+  [ a1 ],% and this too
+  [ b1 ]
+}")?;
+
+        assert_eq!(score.staffs.len(), 1);
 
         Ok(())
     }

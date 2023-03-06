@@ -11,6 +11,7 @@ pub mod score;
 pub mod symbol;
 pub mod tag;
 pub mod voice;
+pub mod comment;
 
 fn ws(input: &str) -> IResult<&str, &str> {
     take_while(is_whitespace)(input)

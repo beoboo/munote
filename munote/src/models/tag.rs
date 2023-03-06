@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::str::FromStr;
 
 use nom::branch::alt;
@@ -12,15 +13,53 @@ use parse_display::Display;
 use parse_display::FromStr;
 use strum::EnumIter;
 
+use crate::duration::Duration;
 use crate::models::{comma, ws};
 use crate::symbol::parse_symbols;
 use crate::{context::ContextPtr, symbol::Symbol};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Tag {
     pub id: TagId,
     pub params: Vec<TagParam>,
     pub symbols: Vec<Box<dyn Symbol>>,
+}
+
+impl PartialEq for Tag {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && self.params == other.params && same_symbols(self, other)
+    }
+}
+
+fn same_symbols(lhs: &Tag, rhs: &Tag) -> bool {
+    lhs.symbols.len() == rhs.symbols.len()
+        && lhs
+            .symbols
+            .iter()
+            .enumerate()
+            .fold(true, |val, (i, s)| val && s.equals(&*rhs.symbols[i]))
+}
+
+impl Symbol for Tag {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn equals(&self, other: &dyn Symbol) -> bool {
+        other.as_any().downcast_ref::<Self>().map_or(false, |a| self == a)
+    }
+
+    fn clone_box(&self) -> Box<dyn Symbol> {
+        Box::new((*self).clone())
+    }
+
+    fn octave(&self) -> i8 {
+        1
+    }
+
+    fn duration(&self) -> Duration {
+        Duration::default()
+    }
 }
 
 impl Tag {
@@ -28,7 +67,11 @@ impl Tag {
         Self { id, params, symbols }
     }
 
-    pub fn parse(input: &str, context: ContextPtr) -> IResult<&str, Self> {
+    pub fn from_id(id: TagId) -> Self {
+        Self::new(id, Vec::new(), Vec::new())
+    }
+
+    pub fn parse(input: &str, mut context: ContextPtr) -> IResult<&str, Self> {
         let (input, id) = map_res(preceded(char('\\'), alpha1), TagId::from_str)(input)?;
 
         let (input, maybe_params) = opt(delimited(char('<'), |s| parse_params(s, context.clone()), char('>')))(input)?;
@@ -39,11 +82,33 @@ impl Tag {
             char(')'),
         ))(input)?;
 
+        let tag = Tag::new(id, maybe_params.unwrap_or_default(), maybe_symbols.unwrap_or_default());
+
+        let mut context = context.borrow_mut();
+        context.add_tag(tag.clone());
+
         Ok((
             input,
-            Tag::new(id, maybe_params.unwrap_or_default(), maybe_symbols.unwrap_or_default()),
+            tag,
         ))
     }
+
+    pub fn has_params(&self) -> bool {
+        !self.params.is_empty()
+    }
+
+    pub fn as_number(&self) -> Option<f32> {
+        if !self.has_params() {
+            return None;
+        }
+
+        if let TagParam::Number(n) = self.params[0] {
+            Some(n)
+        } else {
+            None
+        }
+    }
+
 }
 
 fn parse_params(input: &str, context: ContextPtr) -> IResult<&str, Vec<TagParam>> {
@@ -56,16 +121,19 @@ fn parse_params(input: &str, context: ContextPtr) -> IResult<&str, Vec<TagParam>
     Ok((input, params))
 }
 
-#[derive(Debug, PartialEq, FromStr)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, FromStr)]
 #[display(style = "camelCase")]
 pub enum TagId {
     Accol,
     Bar,
+    Beam,
     Meter,
     PageFormat,
     Space,
     SystemFormat,
     Staff,
+    StemsDown,
+    StemsUp,
     Tie,
 }
 
@@ -81,7 +149,7 @@ pub enum Unit {
     Hs,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TagParam {
     Number(f32),
     NumberUnit(f32, Unit),
@@ -91,7 +159,7 @@ pub enum TagParam {
 }
 
 impl TagParam {
-    pub fn parse(input: &str, mut context: ContextPtr) -> IResult<&str, Self> {
+    pub fn parse(input: &str, context: ContextPtr) -> IResult<&str, Self> {
         alt((
             map(
                 |s| parse_var_string(s, context.clone()),
@@ -174,7 +242,9 @@ mod tests {
     fn parse_tag(input: &str) -> Result<Tag> {
         let context = ContextPtr::default();
 
-        let (_, tag) = Tag::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+        let (input, tag) = Tag::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+
+        assert!(input.is_empty());
 
         Ok(tag)
     }
@@ -223,12 +293,15 @@ mod tests {
         let tag = parse_tag("\\pageFormat<lm=1cm, tm=1cm, bm=1cm, rm=1cm>")?;
 
         assert_eq!(tag.id, TagId::PageFormat);
-        assert_eq!(tag.params, vec![
-            TagParam::VarNumberUnit("lm".into(), 1.0, Unit::Cm),
-            TagParam::VarNumberUnit("tm".into(), 1.0, Unit::Cm),
-            TagParam::VarNumberUnit("bm".into(),1.0, Unit::Cm),
-            TagParam::VarNumberUnit("rm".into(), 1.0, Unit::Cm),
-        ]);
+        assert_eq!(
+            tag.params,
+            vec![
+                TagParam::VarNumberUnit("lm".into(), 1.0, Unit::Cm),
+                TagParam::VarNumberUnit("tm".into(), 1.0, Unit::Cm),
+                TagParam::VarNumberUnit("bm".into(), 1.0, Unit::Cm),
+                TagParam::VarNumberUnit("rm".into(), 1.0, Unit::Cm),
+            ]
+        );
 
         Ok(())
     }
@@ -267,13 +340,22 @@ mod tests {
 
     #[test]
     fn parse_symbols() -> Result<()> {
-        let tag = parse_tag("\\tie(d e)>")?;
+        let tag = parse_tag("\\tie(d e)")?;
 
         assert_eq!(tag.id, TagId::Tie);
         assert_eq!(tag.symbols.len(), 2);
 
         assert!(tag.symbols[0].equals(&Note::from_name(Diatonic::D)));
         assert!(tag.symbols[1].equals(&Note::from_name(Diatonic::E)));
+
+        Ok(())
+    }
+
+    #[test]
+    fn as_number() -> Result<()> {
+        let tag = parse_tag("\\staff<1>")?;
+
+        assert_eq!(tag.as_number().unwrap(), 1.0);
 
         Ok(())
     }

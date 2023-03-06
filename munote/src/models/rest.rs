@@ -4,7 +4,7 @@ use nom::{bytes::complete::tag, combinator::opt, IResult};
 
 use crate::{context::ContextPtr, dots::Dots, duration::Duration, symbol::Symbol};
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Rest {
     pub duration: Duration,
     pub dots: Dots,
@@ -26,6 +26,10 @@ impl Symbol for Rest {
 
     fn equals(&self, other: &dyn Symbol) -> bool {
         other.as_any().downcast_ref::<Self>().map_or(false, |a| self == a)
+    }
+
+    fn clone_box(&self) -> Box<dyn Symbol> {
+        Box::new((*self).clone())
     }
 
     fn octave(&self) -> i8 {
@@ -64,9 +68,11 @@ mod tests {
     fn parse_rest(input: &str) -> Result<Rest> {
         let context = ContextPtr::default();
 
-        let (_, note) = Rest::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+        let (input, rest) = Rest::parse(input, context).map_err(|e| anyhow!("{}", e))?;
 
-        Ok(note)
+        assert!(input.is_empty());
+
+        Ok(rest)
     }
 
     #[test]
