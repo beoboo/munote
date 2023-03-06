@@ -111,12 +111,12 @@ pub enum TagId {
     Tremolo,
     Volta,
 
-    //Tempo
+    // Tempo
     Accelerando,
     Ritardando,
     Tempo,
 
-    //Text
+    // Text
     Composer,
     Fingering,
     Footer,
@@ -126,37 +126,4 @@ pub enum TagId {
     Mark,
     Text,
     Title,
-}
-
-impl TagId {
-    pub fn lookup(name: &str) -> Result<TagId> {
-        lazy_static! {
-            static ref TAG_ID_LOOKUP: std::collections::HashMap<&'static str, TagId> = {
-                let mut m = std::collections::HashMap::new();
-                m.insert("|", TagId::Bar);
-                m.insert("acc", TagId::Accidental);
-                m.insert("accol", TagId::Accolade);
-                m.insert("cresc", TagId::Crescendo);
-                m.insert("dim", TagId::Decrescendo);
-                m.insert("instr", TagId::Instrument);
-                m.insert("mord", TagId::Mordent);
-                m.insert("pizz", TagId::Pizzicato);
-                m.insert("set", TagId::Auto);
-                m.insert("stacc", TagId::Staccato);
-                m.insert("ten", TagId::Tenuto);
-                m
-            };
-        }
-        let res = if TAG_ID_LOOKUP.contains_key(name) {
-            Ok(TAG_ID_LOOKUP[name])
-        } else {
-            TagId::from_str(name).map_err(|e| anyhow!("{e}"))
-        };
-
-        if res.is_err() {
-            eprintln!("{}", format!("Tag ID \"{name}\" not found\n").red());
-        }
-
-        res
-    }
 }

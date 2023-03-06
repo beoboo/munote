@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::str::FromStr;
 use anyhow::bail;
 
 use nom::{branch::alt, bytes::complete::tag, character::complete::{alpha1, char}, combinator::opt, error_position, IResult, multi::many0, sequence::{delimited, preceded, terminated}};
@@ -88,9 +89,17 @@ impl Tag {
         )(input)?;
 
         let (ty, maybe_id) = if maybe_id.ends_with("Begin") {
-            (TagType::Begin, maybe_id.replace("Begin", ""))
+            if TagId::from_str(maybe_id).is_ok() {
+                (TagType::Position, maybe_id.to_string())
+            } else {
+                (TagType::Begin, maybe_id.replace("Begin", ""))
+            }
         } else if maybe_id.ends_with("End") {
-            (TagType::End, maybe_id.replace("End", ""))
+            if TagId::from_str(maybe_id).is_ok() {
+                (TagType::Position, maybe_id.to_string())
+            } else {
+                (TagType::End, maybe_id.replace("End", ""))
+            }
         } else if maybe_events.is_some(){
             (TagType::Range, maybe_id.to_string())
         } else {

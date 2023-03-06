@@ -6,11 +6,11 @@ pub struct TagValidator;
 
 impl TagValidator {
     pub fn validate(&self, tag: &Tag, defs: &TagDefinitions) -> bool {
-        println!("\n\nValidating {tag:?}");
+        // println!("\n\nValidating {tag:?}");
         let def = defs.get(tag.id)
             .expect(&format!("Undefined tag ID: {:?}", tag.id));
 
-        println!("\n{def:?}");
+        // println!("\n{def:?}");
 
         match tag.ty {
             TagType::Position => matches!(def.ty, TagType::Position | TagType::Any),
