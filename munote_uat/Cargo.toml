@@ -1,0 +1,14 @@
+[package]
+name = "munote_uat"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cucumber = { version = "0.19", features = ["libtest"] }
+munote = { path = "../munote" }
+futures = "0.3"
+
+[[test]]
+name = "uat"
+harness = false
+
