@@ -14,6 +14,7 @@ pub mod note;
 pub mod rest;
 pub mod voice;
 pub mod symbol;
+pub mod context;
 
 fn ws(input: &str) -> IResult<&str, &str> {
     take_while(is_whitespace)(input)

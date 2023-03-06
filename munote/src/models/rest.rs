@@ -5,10 +5,10 @@ use nom::{bytes::complete::tag, IResult};
 
 use crate::symbol::Symbol;
 use crate::{dots::Dots, duration::Duration};
+use crate::context::{Context, ContextPtr};
 
 #[derive(Debug, PartialEq)]
 pub struct Rest {
-    pub octave: i8, // This is a passthrough for using the previous note octave
     pub duration: Duration,
     pub dots: Dots,
 }
@@ -16,7 +16,6 @@ pub struct Rest {
 impl Default for Rest {
     fn default() -> Self {
         Self {
-            octave: 1,
             duration: Duration::default(),
             dots: Dots::default(),
         }
@@ -33,7 +32,7 @@ impl Symbol for Rest {
     }
 
     fn octave(&self) -> i8 {
-        self.octave
+        1
     }
 
     fn duration(&self) -> Duration {
@@ -42,35 +41,42 @@ impl Symbol for Rest {
 }
 
 impl Rest {
-    pub fn new(octave: i8, duration: Duration, dots: Dots) -> Self {
-        Self { octave, duration, dots }
+    pub fn new(duration: Duration, dots: Dots) -> Self {
+        Self { duration, dots }
     }
 
-    pub fn parse(input: &str) -> IResult<&str, Self> {
-        Self::parse_next(input, 1, Duration::default())
-    }
-
-    pub fn parse_next(input: &str, prev_octave: i8, prev_duration: Duration) -> IResult<&str, Self> {
+    pub fn parse(input: &str, context: ContextPtr) -> IResult<&str, Self> {
         let (input, _) = tag("_")(input)?;
         let (input, maybe_duration) = opt(Duration::parse)(input)?;
         let (input, dots) = Dots::parse(input)?;
 
         Ok((
             input,
-            Rest::new(prev_octave, maybe_duration.unwrap_or(prev_duration), dots),
+            Rest::new( maybe_duration.unwrap_or(context.borrow().duration), dots),
         ))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
+    use anyhow::{anyhow, Result};
+    use crate::context::Ptr;
 
     use super::*;
 
+    fn parse_rest(input: &str) -> Result<Rest> {
+        let context = Ptr::new(Context::default());
+
+        let (_, note) = Rest::parse(input, context)
+            .map_err(|e| anyhow!("{}", e))?;
+
+        Ok(note)
+    }
+
+
     #[test]
     fn parse() -> Result<()> {
-        let (_, rest) = Rest::parse("_")?;
+        let rest = parse_rest("_")?;
         assert_eq!(rest.duration, Duration::new(1, 1));
         assert_eq!(rest.dots, Dots::None);
 
@@ -79,7 +85,7 @@ mod tests {
 
     #[test]
     fn parse_duration() -> Result<()> {
-        let (_, rest) = Rest::parse("_*5/2")?;
+        let rest = parse_rest("_*5/2")?;
         assert_eq!(rest.duration, Duration::new(5, 2));
 
         Ok(())
@@ -87,7 +93,7 @@ mod tests {
 
     #[test]
     fn parse_dots() -> Result<()> {
-        let (_, rest) = Rest::parse("_.")?;
+        let rest = parse_rest("_.")?;
         assert_eq!(rest.dots, Dots::Single);
 
         Ok(())
@@ -96,7 +102,12 @@ mod tests {
     #[test]
     fn same_duration() -> Result<()> {
         let duration = Duration::new(2, 1);
-        let (_, rest) = Rest::parse_next("_", 1, duration)?;
+        let context = Ptr::new(Context {
+            duration,
+            ..Default::default()
+        });
+
+        let (_, rest) = Rest::parse("_", context)?;
 
         assert_eq!(rest.duration, duration);
         Ok(())

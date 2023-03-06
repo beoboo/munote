@@ -11,7 +11,102 @@ use nom::{
 use parse_display::FromStr;
 
 use crate::{accidentals::Accidentals, dots::Dots, duration::Duration};
+use crate::context::{Context, ContextPtr, Ptr};
 use crate::symbol::Symbol;
+
+#[derive(Debug, PartialEq)]
+pub struct Note {
+    pub name: NoteName,
+    octave: i8,
+    pub accidentals: Accidentals,
+    duration: Duration,
+    pub dots: Dots,
+}
+
+impl Note {
+    pub fn new(
+        name: impl Into<NoteName>,
+        accidentals: Accidentals,
+        octave: i8,
+        duration: Duration,
+        dots: Dots,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            accidentals,
+            octave,
+            duration,
+            dots,
+        }
+    }
+
+    pub fn from_name(name: impl Into<NoteName>) -> Self {
+        Self::new(name, Accidentals::Natural, 1, Duration::default(), Dots::None)
+    }
+
+    pub fn with_duration(mut self, num: u8, denom: u8) -> Self {
+        self.duration = Duration::new(num, denom);
+        self
+    }
+
+    pub fn with_octave(mut self, octave: i8) -> Self {
+        self.octave = octave;
+        self
+    }
+
+    pub fn parse(input: &str, mut context: ContextPtr) -> IResult<&str, Self> {
+        let (input, name) = alt((
+            map(Chromatic::parse, |c| NoteName::from(c)),
+            map(Diatonic::parse, |d| NoteName::from(d)),
+            map(Solfege::parse, |s| NoteName::from(s)),
+        ))
+            .parse(input)?;
+
+        let (input, accidentals) = Accidentals::parse(input)?;
+        let (input, maybe_octave) = opt(i8).parse(input)?;
+        let (input, maybe_duration) = opt(Duration::parse)(input)?;
+        let (input, dots) = Dots::parse(input)?;
+
+        let mut context = context.borrow_mut();
+        let octave =  maybe_octave.unwrap_or(context.octave);
+        let duration =  maybe_duration.unwrap_or(context.duration);
+
+        context.octave = octave;
+        context.duration = duration;
+
+        Ok((
+            input,
+            Note::new(
+                name,
+                accidentals,
+                octave,
+                duration,
+                dots,
+            ),
+        ))
+    }
+}
+
+impl Symbol for Note {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn equals(&self, other: &dyn Symbol) -> bool {
+        other
+            .as_any()
+            .downcast_ref::<Self>()
+            .map_or(false, |a| self == a)
+    }
+
+    fn octave(&self) -> i8 {
+        self.octave
+    }
+
+    fn duration(&self) -> Duration {
+        self.duration
+    }
+}
 
 #[derive(Debug, Clone, FromStr, PartialEq)]
 #[display(style = "lowercase")]
@@ -105,113 +200,29 @@ pub enum NoteName {
     Chromatic(Chromatic),
     Solfege(Solfege),
 }
-
-#[derive(Debug, PartialEq)]
-pub struct Note {
-    pub name: NoteName,
-    octave: i8,
-    pub accidentals: Accidentals,
-    duration: Duration,
-    pub dots: Dots,
-}
-
-impl Note {
-    pub fn new(
-        name: impl Into<NoteName>,
-        accidentals: Accidentals,
-        octave: i8,
-        duration: Duration,
-        dots: Dots,
-    ) -> Self {
-        Self {
-            name: name.into(),
-            accidentals,
-            octave,
-            duration,
-            dots,
-        }
-    }
-
-    pub fn from_name(name: impl Into<NoteName>) -> Self {
-        Self::new(name, Accidentals::Natural, 1, Duration::default(), Dots::None)
-    }
-
-    pub fn with_duration(mut self, num: u8, denom: u8) -> Self {
-        self.duration = Duration::new(num, denom);
-        self
-    }
-
-    pub fn with_octave(mut self, octave: i8) -> Self {
-        self.octave = octave;
-        self
-    }
-
-    pub fn parse(input: &str) -> IResult<&str, Self> {
-        Self::parse_next(input, 1, Duration::default())
-    }
-
-    pub fn parse_next(input: &str, prev_octave: i8, prev_duration: Duration) -> IResult<&str, Self> {
-        let (input, name) = alt((
-            map(Chromatic::parse, |c| NoteName::from(c)),
-            map(Diatonic::parse, |d| NoteName::from(d)),
-            map(Solfege::parse, |s| NoteName::from(s)),
-        ))
-        .parse(input)?;
-
-        let (input, accidentals) = Accidentals::parse(input)?;
-        let (input, maybe_octave) = opt(i8).parse(input)?;
-        let (input, maybe_duration) = opt(Duration::parse)(input)?;
-        let (input, dots) = Dots::parse(input)?;
-
-        println!("Duration: {maybe_duration:?}");
-        Ok((
-            input,
-            Note::new(
-                name,
-                accidentals,
-                maybe_octave.unwrap_or(prev_octave),
-                maybe_duration.unwrap_or(prev_duration),
-                dots,
-            ),
-        ))
-    }
-}
-
-impl Symbol for Note {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn equals(&self, other: &dyn Symbol) -> bool {
-        other
-            .as_any()
-            .downcast_ref::<Self>()
-            .map_or(false, |a| self == a)
-    }
-
-    fn octave(&self) -> i8 {
-        self.octave
-    }
-
-    fn duration(&self) -> Duration {
-        self.duration
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
+    use anyhow::{anyhow, Result};
 
     use crate::accidentals::Accidentals;
 
     use super::*;
 
+    fn parse_note(input: &str) -> Result<Note> {
+        let context = ContextPtr::default();
+
+        let (_, note) = Note::parse(input, context)
+            .map_err(|e| anyhow!("{}", e))?;
+
+        Ok(note)
+    }
+
     #[test]
     fn parse_diatonic() -> Result<()> {
-        let (_, note) = Note::parse("a1")?;
+        let note = parse_note("a1")?;
         assert_note(&note, Diatonic::A, 1);
 
-        let (_, note) = Note::parse("f")?;
+        let note = parse_note("f")?;
         assert_note(&note, Diatonic::F, 1);
 
         Ok(())
@@ -219,7 +230,7 @@ mod tests {
 
     #[test]
     fn parse_chromatic() -> Result<()> {
-        let (_, note) = Note::parse("cis2")?;
+        let note = parse_note("cis2")?;
         assert_note(&note, Chromatic::Cis, 2);
 
         Ok(())
@@ -227,7 +238,7 @@ mod tests {
 
     #[test]
     fn parse_solfege() -> Result<()> {
-        let (_, note) = Note::parse("sol-1")?;
+        let note = parse_note("sol-1")?;
         assert_note(&note, Solfege::Sol, -1);
 
         Ok(())
@@ -235,7 +246,7 @@ mod tests {
 
     #[test]
     fn parse_accidentals() -> Result<()> {
-        let (_, note) = Note::parse("c#1")?;
+        let note = parse_note("c#1")?;
         assert_eq!(note.accidentals, Accidentals::Sharp);
 
         Ok(())
@@ -243,7 +254,7 @@ mod tests {
 
     #[test]
     fn parse_duration() -> Result<()> {
-        let (_, note) = Note::parse("c*1")?;
+        let note = parse_note("c*1")?;
         assert_eq!(note.duration, Duration::new(1, 1));
 
         Ok(())
@@ -251,7 +262,7 @@ mod tests {
 
     #[test]
     fn parse_dots() -> Result<()> {
-        let (_, note) = Note::parse("c.")?;
+        let note = parse_note("c.")?;
         assert_eq!(note.dots, Dots::Single);
 
         Ok(())
@@ -259,7 +270,12 @@ mod tests {
 
     #[test]
     fn same_octave() -> Result<()> {
-        let (_, note) = Note::parse_next("c", 2, Duration::default())?;
+        let mut context = Ptr::new(Context {
+            octave: 2,
+            ..Default::default()
+        });
+
+        let (_, note) = Note::parse("c", context)?;
         assert_note(&note, Diatonic::C, 2);
 
         Ok(())
@@ -268,7 +284,12 @@ mod tests {
     #[test]
     fn same_duration() -> Result<()> {
         let duration = Duration::new(2, 1);
-        let (_, note) = Note::parse_next("c", 1, duration)?;
+        let mut context = Ptr::new(Context {
+            duration,
+            ..Default::default()
+        });
+
+        let (_, note) = Note::parse("c", context)?;
 
         assert_eq!(note.duration, duration);
         Ok(())
