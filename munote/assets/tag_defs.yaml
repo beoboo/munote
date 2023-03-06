@@ -236,6 +236,9 @@ staffFormat:
 staffOff:
   type: "position"
 
+staffOn:
+  type: "position"
+
 systemFormat:
   type: "position"
   params:

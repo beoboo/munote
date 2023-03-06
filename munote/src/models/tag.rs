@@ -118,11 +118,11 @@ impl Tag {
                 Err::Error(error_position!(input, ErrorKind::Fail))
             })?;
 
-        // println!("\n\nParsing \"{input}\" for {id:?} {ty:?}
-        //   params: {maybe_params:?}
-        //   events: {maybe_events:?}
-        //  \n");
-        //
+        println!("\n\nParsing \"{input}\" for {id:?} {ty:?}
+          params: {maybe_params:?}
+          events: {maybe_events:?}
+         \n");
+
         let tag = Tag::new(
             id,
             ty,

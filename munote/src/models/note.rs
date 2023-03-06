@@ -76,6 +76,7 @@ impl Note {
 
     pub fn parse(input: Span, mut context: ContextPtr) -> IResult<Span, Self> {
         let (input, name) = alt((
+            map(tag("empty"), |_| NoteName::Empty),
             map(Chromatic::parse, |c| NoteName::from(c)),
             map(Diatonic::parse, |d| NoteName::from(d)),
             map(Solfege::parse, |s| NoteName::from(s)),
@@ -188,10 +189,12 @@ impl From<Solfege> for NoteName {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum NoteName {
+    Empty,
     Diatonic(Diatonic),
     Chromatic(Chromatic),
     Solfege(Solfege),
 }
+
 #[cfg(test)]
 mod tests {
     use anyhow::{anyhow, Result};
@@ -212,6 +215,14 @@ mod tests {
         assert_eq!(*input.fragment(), "");
 
         Ok(parsed)
+    }
+
+    #[test]
+    fn parse_empty() -> Result<()> {
+        let note = parse_note("empty")?;
+        assert_eq!(note.name, NoteName::Empty);
+
+        Ok(())
     }
 
     #[test]
