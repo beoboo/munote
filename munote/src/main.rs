@@ -2,6 +2,7 @@ use std::{fs, path::Path};
 
 use anyhow::Result;
 use clap::Parser;
+use colorize::AnsiColor;
 
 use munote::{context::ContextPtr, score::Score};
 
@@ -22,7 +23,7 @@ fn main() -> Result<()> {
     let score = Score::parse(&content, ContextPtr::default())?;
 
     println!("Score parsed successfully: ");
-    println!("{score:?}");
+    println!("{}", format!("{score:?}").b_black());
 
     Ok(())
 }

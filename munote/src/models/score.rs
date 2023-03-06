@@ -1,19 +1,16 @@
+use std::collections::HashMap;
+
 use anyhow::{anyhow, Result};
 use nom::{
     character::complete::{char, one_of},
     combinator::peek,
+    IResult,
     multi::many0,
     sequence::{delimited, preceded},
-    IResult,
 };
-use std::collections::HashMap;
+use nom::sequence::terminated;
 
-use crate::{
-    comment::all_comments,
-    context::ContextPtr,
-    models::{comma, ws},
-    voice::Voice,
-};
+use crate::{comment::all_comments, context::ContextPtr, models::ws, voice::Voice};
 
 #[derive(Debug)]
 pub struct Score {
@@ -66,14 +63,14 @@ impl Score {
 
         let (input, voices) = match next {
             '{' => delimited(
-                char('{'),
-                delimited(ws, |s| parse_voices(s, context.clone()), ws),
-                char('}'),
+                terminated(char('{'), ws),
+                |s| parse_voices(s, context.clone()),
+                terminated(char('}'), ws),
             )(&input)?,
             _ => {
                 let (input, voice) = Voice::parse(&input, context)?;
                 (input, vec![voice])
-            },
+            }
         };
 
         Ok((input, Self::new(voices)))
@@ -84,7 +81,7 @@ fn parse_voices(input: &str, context: ContextPtr) -> IResult<&str, Vec<Voice>> {
     let (input, first) = Voice::parse(input, context.clone())?;
 
     let (input, mut voices) =
-        many0(preceded(comma, |i| Voice::parse(i, context.clone())))(input)?;
+        many0(preceded(terminated(char(','), ws), |i| Voice::parse(i, context.clone())))(input)?;
 
     voices.insert(0, first);
 

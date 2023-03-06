@@ -1,26 +1,28 @@
 use std::{any::Any, str::FromStr};
 
 use anyhow::{anyhow, Result};
+use lazy_static::lazy_static;
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
     character::complete::{alpha1, char},
     combinator::{map, map_res, opt, value, verify},
+    IResult,
     multi::many0,
     number::complete::float,
     sequence::{delimited, preceded, Tuple},
-    IResult,
 };
+use nom::sequence::terminated;
 use parse_display::{Display, FromStr};
 use strum::EnumIter;
 
-use lazy_static::lazy_static;
-
 use crate::{
     context::ContextPtr,
-    models::{comma, ws},
+    models::ws,
     symbol::{parse_symbols, Symbol},
 };
+use crate::models::string;
+use crate::symbol::same_symbols;
 
 #[derive(Debug, Clone)]
 pub struct Tag {
@@ -33,17 +35,8 @@ impl PartialEq for Tag {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
             && self.params == other.params
-            && same_symbols(self, other)
+            && same_symbols(&self.symbols, &other.symbols)
     }
-}
-
-fn same_symbols(lhs: &Tag, rhs: &Tag) -> bool {
-    lhs.symbols.len() == rhs.symbols.len()
-        && lhs
-            .symbols
-            .iter()
-            .enumerate()
-            .fold(true, |val, (i, s)| val && s.equals(&*rhs.symbols[i]))
 }
 
 impl Symbol for Tag {
@@ -80,20 +73,33 @@ impl Tag {
         Self::new(id, Vec::new(), Vec::new())
     }
 
+    pub fn with_param(mut self, param: TagParam) -> Self {
+        self.params.push(param);
+        self
+    }
+
     pub fn parse(input: &str, mut context: ContextPtr) -> IResult<&str, Self> {
+        // println!("\n\n\nParsing \"{input}\"\n\n");
         let (input, id) = map_res(
-            alt((preceded(char('\\'), alpha1), tag("|"))),
+            alt((terminated(preceded(char('\\'), alpha1), ws), tag("|"))),
             TagId::lookup,
         )(input)?;
 
+        // println!("\n\n\nParsing \"{input}\" for {id:?}");
+
         let (input, maybe_params) =
-            opt(delimited(char('<'), |s| parse_params(s), char('>')))(input)?;
+            opt(
+                delimited(terminated(char('<'), ws),
+                          |s| parse_params(s),
+                          terminated(char('>'), ws)))(input)?;
+        // println!("\n\n\nParsing \"{input}\" for {id:?}{maybe_params:?}");
 
         let (input, maybe_symbols) = opt(delimited(
-            char('('),
-            delimited(ws, |s| parse_symbols(s, context.clone()), ws),
-            char(')'),
+            terminated(char('('), ws),
+            |s| parse_symbols(s, context.clone()),
+            terminated(char(')'), ws),
         ))(input)?;
+        // println!("\n\n\nParsing \"{input}\" for {id:?}{maybe_params:?}{maybe_symbols:?}");
 
         let tag = Tag::new(
             id,
@@ -104,6 +110,7 @@ impl Tag {
         let mut context = context.borrow_mut();
         context.add_tag(tag.clone());
 
+        // println!("\n\n\nParsed \"{tag:?}\"");
         Ok((input, tag))
     }
 
@@ -125,10 +132,12 @@ impl Tag {
 }
 
 fn parse_params(input: &str) -> IResult<&str, Vec<TagParam>> {
+    // println!("Parsing params: {input}");
     let (input, first) = TagParam::parse(input)?;
+    // println!("First: {first:?} {input}");
 
     let (input, mut params) =
-        many0(preceded(comma, |i| TagParam::parse(i)))(input)?;
+        many0(preceded(terminated(char(','), ws), |i| TagParam::parse(i)))(input)?;
 
     params.insert(0, first);
 
@@ -138,28 +147,121 @@ fn parse_params(input: &str) -> IResult<&str, Vec<TagParam>> {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, FromStr)]
 #[display(style = "camelCase")]
 pub enum TagId {
+    // Accidentals
     Accidental,
-    Accol,
     Alter,
+
+    // Articulations
+    Accent,
+    Bow,
+    BreathMark,
+    Fermata,
+    Glissando,
+    Marcato,
+    PedalOn,
+    PedalOff,
+    Pizzicato,
+    Slur,
+    Staccato,
+    Tenuto,
+
+    // Barlines
     Bar,
-    Beam,
-    Clef,
-    Composer,
+    BarFormat,
     DoubleBar,
-    Footer,
-    Harmony,
+    EndBar,
+
+    // Beaming
+    Beam,
+    BeamsAuto,
+    BeamsOff,
+    BeamsFull,
+    FBeam,
+
+    // Clef key meter
+    Clef,
     Key,
     Meter,
+
+    // Dynamics
+    Crescendo,
+    Decrescendo,
+    Intensity,
+
+    // Layout
+    Accolade,
+    NewPage,
+    NewLine,
     PageFormat,
-    Set,
-    Space,
-    SystemFormat,
     Staff,
+    StaffFormat,
+    StaffOff,
+    StaffOn,
+    SystemFormat,
+
+    // Miscellaneous
+    Auto,
+    Space,
+    Special,
+
+    // NotesCluster,
+    Cue,
+    DisplayDuration,
+    DotFormat,
+    Grace,
+    Harmonic,
+    Mrest,
+    NoteFormat,
+    Octava,
+    RestFormat,
+    HeadsCenter,
+    HeadsLeft,
+    HeadsRight,
+    HeadsNormal,
+    HeadsReverse,
+    StemsOff,
+    StemsAuto,
     StemsDown,
     StemsUp,
     Tie,
-    Title,
     Tuplet,
+
+    // Ornaments
+
+    Arpeggio,
+    Mordent,
+    Trill,
+    Turn,
+
+    //Repeat Signs
+    Coda,
+    DaCapo,
+    DaCapoAlFine,
+    DaCoda,
+    DalSegno,
+    DalSegnoAlFine,
+    Fine,
+    RepeatBegin,
+    RepeatEnd,
+    Segno,
+    Tremolo,
+    Volta,
+
+    //Tempo
+    Accelerando,
+    Ritardando,
+    Tempo,
+
+    //Text
+    Composer,
+    Fingering,
+    Footer,
+    Harmony,
+    Instrument,
+    Lyrics,
+    Mark,
+    Text,
+    Title,
 }
 
 impl TagId {
@@ -167,8 +269,15 @@ impl TagId {
         lazy_static! {
             static ref TAG_ID_LOOKUP: std::collections::HashMap<&'static str, TagId> = {
                 let mut m = std::collections::HashMap::new();
-                m.insert("acc", TagId::Accidental);
                 m.insert("|", TagId::Bar);
+                m.insert("acc", TagId::Accidental);
+                m.insert("accol", TagId::Accolade);
+                m.insert("instr", TagId::Instrument);
+                m.insert("mord", TagId::Mordent);
+                m.insert("pizz", TagId::Pizzicato);
+                m.insert("set", TagId::Auto);
+                m.insert("stacc", TagId::Staccato);
+                m.insert("ten", TagId::Tenuto);
                 m
             };
         }
@@ -204,8 +313,7 @@ pub enum TagParam {
 
 impl TagParam {
     pub fn parse(input: &str) -> IResult<&str, Self> {
-        delimited(
-            ws,
+        terminated(
             alt((
                 map(
                     |s| parse_var_string(s),
@@ -262,27 +370,27 @@ fn parse_number_unit(input: &str) -> IResult<&str, (f32, Unit)> {
 
 fn parse_var_string(input: &str) -> IResult<&str, (String, String)> {
     let (input, (name, _, val)) =
-        (alpha1, delimited(ws, char('='), ws), |s| parse_string(s))
+        (string, delimited(ws, char('='), ws), |s| parse_string(s))
             .parse(input)?;
 
     Ok((input, (name.to_string(), val)))
 }
 
+fn parse_var_number(input: &str) -> IResult<&str, (String, f32)> {
+    let (input, (name, _, num)) =
+        (string, delimited(ws, char('='), ws), |s| float(s)).parse(input)?;
+
+    Ok((input, (name.to_string(), num)))
+}
+
 fn parse_var_number_unit(input: &str) -> IResult<&str, (String, f32, Unit)> {
     let (input, (name, _, (num, unit))) =
-        (alpha1, delimited(ws, char('='), ws), |s| {
+        (string, delimited(ws, char('='), ws), |s| {
             parse_number_unit(s)
         })
             .parse(input)?;
 
     Ok((input, (name.to_string(), num, unit)))
-}
-
-fn parse_var_number(input: &str) -> IResult<&str, (String, f32)> {
-    let (input, (name, _, num)) =
-        (alpha1, delimited(ws, char('='), ws), |s| float(s)).parse(input)?;
-
-    Ok((input, (name.to_string(), num)))
 }
 
 #[cfg(test)]
@@ -303,7 +411,7 @@ mod tests {
         let (input, tag) =
             Tag::parse(input, context).map_err(|e| anyhow!("{}", e))?;
 
-        assert!(input.is_empty());
+        assert_eq!(input, "");
 
         Ok(tag)
     }
@@ -415,7 +523,7 @@ mod tests {
     fn parse_variable_string_param() -> Result<()> {
         let tag = parse_tag("\\accol<type=\"thinBrace\">")?;
 
-        assert_eq!(tag.id, TagId::Accol);
+        assert_eq!(tag.id, TagId::Accolade);
         assert_eq!(
             tag.params,
             vec![TagParam::VarString("type".into(), "thinBrace".into())]
@@ -457,20 +565,24 @@ mod tests {
         ));
 
         let tag = parse_tag("\\tuplet<\"-3-\",dy1=-3, dy2=1>(c/6 d e&)")?;
-
         assert_eq!(tag.id, TagId::Tuplet);
+
+        let tag = parse_tag("\\tie (a/1 | \\harmony<\"G7\", dy=2> a)")?;
+        assert_eq!(tag.id, TagId::Tie);
+
+        let tag = parse_tag("\\instr<\"Pizz.\",  autopos=\"on\", fsize=10pt>")?;
+        assert_eq!(tag.id, TagId::Instrument);
+
+        let tag = parse_tag("\\pizz<\"buzz\"> (\\stacc(a1 b) \\ten(a1 b))")?;
+        assert_eq!(tag.id, TagId::Pizzicato);
 
         Ok(())
     }
 
     #[test]
     fn eat_whitespaces() -> Result<()> {
-        let tag = parse_tag("\\systemFormat< dx=1cm>")?;
-
-        assert_eq!(
-            tag.params,
-            vec![TagParam::VarNumberUnit("dx".into(), 1.0, Unit::Cm)]
-        );
+        let tag = parse_tag("\\tuplet < \"-3-\",dy1=-3, dy2=1>(c/6 d e&)")?;
+        assert_eq!(tag.id, TagId::Tuplet);
 
         Ok(())
     }

@@ -2,23 +2,30 @@ use std::any::Any;
 
 use nom::{
     character::complete::char,
-    multi::many0,
-    sequence::{delimited, preceded},
     IResult,
+    sequence::delimited,
 };
+use nom::sequence::terminated;
 
 use crate::{
     context::ContextPtr,
     duration::Duration,
-    models::{comma, ws},
-    note::Note,
+    models::ws,
     symbol::Symbol,
 };
+use crate::symbol::{parse_symbols, same_symbols};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Chord {
-    pub notes: Vec<Note>,
+    pub symbols: Vec<Box<dyn Symbol>>,
     pub duration: Duration,
+}
+
+impl PartialEq for Chord {
+    fn eq(&self, other: &Self) -> bool {
+        self.duration == other.duration
+            && same_symbols(&self.symbols, &other.symbols)
+    }
 }
 
 impl Symbol for Chord {
@@ -39,49 +46,52 @@ impl Symbol for Chord {
 }
 
 impl Chord {
-    pub fn new(notes: Vec<Note>) -> Self {
-        let duration = notes.iter().map(|n| n.duration).max().unwrap();
-
-        Self { notes, duration }
+    pub fn new(symbols: Vec<Box<dyn Symbol>>, duration: Duration) -> Self {
+        Self { symbols, duration }
     }
 
     pub fn parse(input: &str, context: ContextPtr) -> IResult<&str, Self> {
-        let (input, notes) = delimited(
-            char('{'),
-            delimited(ws, |i| parse_notes(i, context.clone()), ws),
-            char('}'),
+        let (input, symbols) = delimited(
+            terminated(char('{'), ws),
+            |i| parse_symbols(i, context.clone()),
+            terminated(char('}'), ws),
         )(input)?;
 
-        Ok((input, Chord::new(notes)))
+        let ctx = context.borrow();
+
+        Ok((input, Chord::new(symbols, ctx.duration)))
     }
 }
-
-fn parse_notes(input: &str, context: ContextPtr) -> IResult<&str, Vec<Note>> {
-    let (input, first) = Note::parse(input, context.clone())?;
-
-    let (input, mut notes) =
-        many0(preceded(comma, |i| Note::parse(i, context.clone())))(input)?;
-
-    notes.insert(0, first);
-
-    Ok((input, notes))
-}
+//
+// fn parse_symbols(input: &str, context: ContextPtr) -> IResult<&str, Vec<Box<dyn Symbol>>> {
+//     let (input, first) = Note::parse(input, context.clone())?;
+//
+//     let (input, mut notes) =
+//         many0(preceded(comma, |i| Note::parse(i, context.clone())))(input)?;
+//
+//     notes.insert(0, first);
+//
+//     Ok((input, notes))
+// }
 
 #[cfg(test)]
 mod tests {
     use anyhow::{anyhow, Result};
 
+    use crate::note::Note;
     use crate::note::Diatonic;
+    use crate::tag::{Tag, TagId, TagParam};
 
     use super::*;
 
     fn parse_chord(input: &str) -> Result<Chord> {
         let context = ContextPtr::default();
 
+        println!("Here");
         let (input, chord) =
             Chord::parse(input, context).map_err(|e| anyhow!("{}", e))?;
 
-        assert!(input.is_empty());
+        assert_eq!(input, "");
 
         Ok(chord)
     }
@@ -90,7 +100,7 @@ mod tests {
     fn parse_one() -> Result<()> {
         let chord = parse_chord("{ a1 }")?;
 
-        assert_eq!(chord.notes, vec![Note::from_name(Diatonic::A)]);
+        assert_same_symbols(chord.symbols, vec![Box::new(Note::from_name(Diatonic::A))]);
 
         Ok(())
     }
@@ -99,9 +109,9 @@ mod tests {
     fn parse_multiple() -> Result<()> {
         let chord = parse_chord("{ a1, b1 }")?;
 
-        assert_eq!(
-            chord.notes,
-            vec![Note::from_name(Diatonic::A), Note::from_name(Diatonic::B),]
+        assert_same_symbols(
+            chord.symbols,
+            vec![Box::new(Note::from_name(Diatonic::A)), Box::new(Note::from_name(Diatonic::B))],
         );
 
         Ok(())
@@ -110,6 +120,8 @@ mod tests {
     #[test]
     fn duration() -> Result<()> {
         let chord = parse_chord("{ a1*2, b1*4 }")?;
+
+        println!("{chord:?}");
 
         assert_eq!(chord.duration, Duration::new(4, 1));
 
@@ -120,12 +132,12 @@ mod tests {
     fn same_duration() -> Result<()> {
         let chord = parse_chord("{ a1*2, b1 }")?;
 
-        assert_eq!(
-            chord.notes,
+        assert_same_symbols(
+            chord.symbols,
             vec![
-                Note::from_name(Diatonic::A).with_duration(2, 1),
-                Note::from_name(Diatonic::B).with_duration(2, 1),
-            ]
+                Box::new(Note::from_name(Diatonic::A).with_duration(2, 1)),
+                Box::new(Note::from_name(Diatonic::B).with_duration(2, 1)),
+            ],
         );
 
         Ok(())
@@ -135,14 +147,39 @@ mod tests {
     fn same_octave() -> Result<()> {
         let chord = parse_chord("{ a2, b }")?;
 
-        assert_eq!(
-            chord.notes,
+        assert_same_symbols(
+            chord.symbols,
             vec![
-                Note::from_name(Diatonic::A).with_octave(2),
-                Note::from_name(Diatonic::B).with_octave(2),
-            ]
+                Box::new(Note::from_name(Diatonic::A).with_octave(2)),
+                Box::new(Note::from_name(Diatonic::B).with_octave(2)),
+            ],
         );
 
         Ok(())
+    }
+
+    #[test]
+    fn with_tags() -> Result<()> {
+        let chord = parse_chord("{ c, \\staff<1> g }")?;
+        println!("Here");
+
+        assert_same_symbols(
+            chord.symbols,
+            vec![
+                Box::new(Note::from_name(Diatonic::C)),
+                Box::new(Tag::from_id(TagId::Staff).with_param(TagParam::Number(1.0))),
+                Box::new(Note::from_name(Diatonic::G)),
+            ],
+        );
+
+        Ok(())
+    }
+
+    fn assert_same_symbols(lhs: Vec<Box<dyn Symbol>>, rhs: Vec<Box<dyn Symbol>>) {
+        assert_eq!(lhs.len(), rhs.len());
+
+        for (i, s) in lhs.iter().enumerate() {
+            assert_eq!(s.as_ref(), rhs[i].as_ref());
+        }
     }
 }

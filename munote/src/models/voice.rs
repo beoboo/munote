@@ -1,4 +1,5 @@
 use nom::{character::complete::char, sequence::delimited, IResult};
+use nom::sequence::terminated;
 
 use crate::{
     context::ContextPtr,
@@ -20,9 +21,9 @@ impl Voice {
 
     pub fn parse<'a>(input: &str, context: ContextPtr) -> IResult<&str, Self> {
         let (input, symbols) = delimited(
-            char('['),
-            delimited(ws, |s| parse_symbols(s, context.clone()), ws),
-            char(']'),
+            terminated(char('['), ws),
+            |s| parse_symbols(s, context.clone()),
+            terminated(char(']'), ws),
         )(input)?;
 
         let ctx = context.borrow();
@@ -41,6 +42,7 @@ mod tests {
         note::{Diatonic, Note},
         rest::Rest,
     };
+    use crate::duration::Duration;
 
     use super::*;
 
@@ -50,7 +52,7 @@ mod tests {
         let (input, voice) =
             Voice::parse(input, context).map_err(|e| anyhow!("{}", e))?;
 
-        assert!(input.is_empty());
+        assert_eq!(input, "");
 
         Ok(voice)
     }
@@ -83,10 +85,12 @@ mod tests {
         assert_eq!(voice.symbols.len(), 1);
 
         let chord = Chord::new(vec![
-            Note::from_name(Diatonic::A).with_duration(2, 1),
-            Note::from_name(Diatonic::B).with_duration(2, 1),
-        ]);
+            Box::new(Note::from_name(Diatonic::A).with_duration(2, 1)),
+            Box::new(Note::from_name(Diatonic::B).with_duration(2, 1)),
+        ], Duration::new(2, 1));
 
+        println!("{chord:?}");
+        println!("{:?}", voice.symbols[0]);
         assert!(voice.symbols[0].equals(&chord));
 
         Ok(())

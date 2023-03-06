@@ -17,6 +17,7 @@ use crate::{
     duration::Duration,
     symbol::Symbol,
 };
+use crate::models::ws;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Note {
@@ -81,6 +82,9 @@ impl Note {
         let (input, maybe_octave) = opt(i8).parse(input)?;
         let (input, maybe_duration) = opt(Duration::parse)(input)?;
         let (input, dots) = Dots::parse(input)?;
+
+        // Eat remaining whitespaces
+        let (input, _) = ws(input)?;
 
         let mut context = context.borrow_mut();
         let octave = maybe_octave.unwrap_or(context.octave);
@@ -219,7 +223,7 @@ mod tests {
         let (input, note) =
             Note::parse(input, context).map_err(|e| anyhow!("{}", e))?;
 
-        assert!(input.is_empty());
+        assert_eq!(input, "");
 
         Ok(note)
     }

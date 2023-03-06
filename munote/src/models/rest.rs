@@ -8,6 +8,7 @@ use crate::{
     duration::Duration,
     symbol::Symbol,
 };
+use crate::models::ws;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Rest {
@@ -51,6 +52,9 @@ impl Rest {
         let (input, maybe_duration) = opt(Duration::parse)(input)?;
         let (input, dots) = Dots::parse(input)?;
 
+        // Eat remaining whitespaces
+        let (input, _) = ws(input)?;
+
         Ok((
             input,
             Rest::new(
@@ -74,7 +78,7 @@ mod tests {
         let (input, rest) =
             Rest::parse(input, context).map_err(|e| anyhow!("{}", e))?;
 
-        assert!(input.is_empty());
+        assert_eq!(input, "");
 
         Ok(rest)
     }
