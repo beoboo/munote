@@ -3,8 +3,6 @@ use nom::IResult;
 use crate::{
     context::ContextPtr,
     event::Event,
-    tag::Tag,
-    tag_id::TagId,
 };
 use crate::event::parse_delimited_events;
 
@@ -21,7 +19,7 @@ impl Voice {
     }
 
     pub fn parse<'a>(input: &str, context: ContextPtr) -> IResult<&str, Self> {
-        let (input, events) = parse_delimited_events(input, context.clone(), '[', ']', false)?;
+        let (input, events) = parse_delimited_events(input, context.clone(), '[', ']')?;
 
         let ctx = context.borrow();
         let staff = None;//ctx.get_tag(TagId::Staff).and_then(Tag::as_number);
@@ -88,9 +86,6 @@ mod tests {
             ],
             Duration::new(2, 1),
         );
-
-        println!("{chord:?}");
-        println!("{:?}", voice.events[0]);
         assert!(voice.events[0].equals(&chord));
 
         Ok(())
@@ -104,22 +99,21 @@ mod tests {
 
         Ok(())
     }
-
-    #[test]
-    fn convert_begin_end() -> Result<()> {
-        let voice = parse_voice("[ \\tieBegin d e \\tieEnd ]")?;
-        assert_eq!(voice.events.len(), 2);
-        todo!();
-        // assert_eq!(voice.range_tags.len(), 1);
-        // assert_eq!(voice.range_tags[0], RangeTag::from_id(TagId::Tie).with_events(vec![
-        //     Box::new(Note::from_name(Diatonic::D)),
-        //     Box::new(Note::from_name(Diatonic::E)),
-        // ]));
-
-        // assert!(tag.symbols[0].equals(&Note::from_name(Diatonic::D)));
-        // assert!(tag.symbols[1].equals(&Note::from_name(Diatonic::E)));
-
-        Ok(())
-    }
-
+    //
+    // #[test]
+    // fn convert_begin_end() -> Result<()> {
+    //     let voice = parse_voice("[ \\tieBegin d e \\tieEnd ]")?;
+    //     assert_eq!(voice.events.len(), 2);
+    //     todo!();
+    //     // assert_eq!(voice.range_tags.len(), 1);
+    //     // assert_eq!(voice.range_tags[0], RangeTag::from_id(TagId::Tie).with_events(vec![
+    //     //     Box::new(Note::from_name(Diatonic::D)),
+    //     //     Box::new(Note::from_name(Diatonic::E)),
+    //     // ]));
+    //
+    //     // assert!(tag.symbols[0].equals(&Note::from_name(Diatonic::D)));
+    //     // assert!(tag.symbols[1].equals(&Note::from_name(Diatonic::E)));
+    //
+    //     Ok(())
+    // }
 }

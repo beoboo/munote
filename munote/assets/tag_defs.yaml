@@ -1,0 +1,14 @@
+#defs:
+accelerando:
+  type: "range"
+  alternatives: ["accel"]
+  params:
+    - { name: before, type: "string", default: "", optional: true }
+    - { name: after, type: "string", default: "", optional: true }
+    - { name: dx2, type: "unit", default: 0, optional: true }
+
+accent:
+  type: "range"
+  alternatives: ["acc"]
+  params:
+    - { name: position, type: "string", default: "", optional: true }

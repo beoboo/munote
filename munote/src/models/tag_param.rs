@@ -3,9 +3,9 @@ use nom::{
     bytes::complete::is_not,
     character::complete::char,
     combinator::{map, verify},
+    IResult,
     number::complete::float,
     sequence::{delimited, terminated, Tuple},
-    IResult,
 };
 
 use crate::{
@@ -91,4 +91,76 @@ fn parse_var_number_unit(input: &str) -> IResult<&str, (String, f32, Unit)> {
             .parse(input)?;
 
     Ok((input, (name.to_string(), num, unit)))
+}
+
+
+#[cfg(test)]
+mod tests {
+    use anyhow::{anyhow, Result};
+    use strum::IntoEnumIterator;
+
+    use crate::unit::Unit;
+
+    use super::*;
+
+    fn parse_tag_param(input: &str) -> Result<TagParam> {
+        let (input, param) =
+            TagParam::parse(input).map_err(|e| anyhow!("{}", e))?;
+
+        assert_eq!(input, "");
+
+        Ok(param)
+    }
+
+    #[test]
+    fn parse_string_param() -> Result<()> {
+        assert_eq!(parse_tag_param("\"2/4\"")?, TagParam::String("2/4".into()));
+        assert_eq!(parse_tag_param("\"F#m7\"")?, TagParam::String("F#m7".into()));
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_number_param() -> Result<()> {
+        assert_eq!(parse_tag_param("1")?, TagParam::Number(1.0));
+
+        assert_eq!(
+            parse_tag_param("-0.5")?,
+            TagParam::Number(-0.5)
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_variable_number_unit_param() -> Result<()> {
+        assert_eq!(
+            parse_tag_param("dx=1cm")?,
+            TagParam::VarNumberUnit("dx".into(), 1.0, Unit::Cm)
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_number_units() -> Result<()> {
+        for u in Unit::iter() {
+            assert_eq!(
+                parse_tag_param(&format!("1{u}"))?,
+                TagParam::NumberUnit(1.0, u)
+            );
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_variable_string_param() -> Result<()> {
+        assert_eq!(
+            parse_tag_param("type=\"thinBrace\"")?,
+            TagParam::VarString("type".into(), "thinBrace".into())
+        );
+
+        Ok(())
+    }
 }

@@ -23,6 +23,8 @@ pub mod unit;
 pub mod voice;
 pub mod error;
 pub mod range_tag;
+pub mod tag_validator;
+pub mod tag_definitions;
 
 fn string(input: &str) -> IResult<&str, &str> {
     recognize(preceded(alpha1, alphanumeric0))(input)

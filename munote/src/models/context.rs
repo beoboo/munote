@@ -83,10 +83,9 @@ mod tests {
     fn add_tag() {
         let mut ctx = Context::default();
 
-        todo!()
-        // let tag = RangeTag::from_id(TagId::Bar);
-        // ctx.add_tag(tag.clone());
-        //
-        // assert_eq!(ctx.get_tag(TagId::Bar).unwrap(), &tag);
+        let tag = RangeTag::from_id(TagId::Bar, 1, 2);
+        ctx.add_tag(tag.clone());
+
+        assert_eq!(ctx.get_tag(TagId::Bar).unwrap(), &tag);
     }
 }

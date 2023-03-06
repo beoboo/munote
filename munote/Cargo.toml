@@ -13,4 +13,7 @@ nom = "7.1"
 nom_locate = "4.1"
 parse-display = "0.8"
 regex = "1.7"
+serde = { version = "1.0.152", features = ["derive"] }
+serde_yaml = "0.9.18"
 strum = { version = "0.24", features = ["derive"] }
+yaml-rust = "0.4.5"

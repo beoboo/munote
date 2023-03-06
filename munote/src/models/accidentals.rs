@@ -6,8 +6,9 @@ use nom::{
     Err,
     IResult,
 };
+use serde::Deserialize;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 pub enum Accidentals {
     Natural,
     Sharp,

@@ -6,7 +6,8 @@ use nom::{
     IResult,
     sequence::{preceded, terminated},
 };
-use nom::multi::fold_many0;
+use nom::multi::many0;
+use nom::sequence::delimited;
 
 use crate::{
     chord::Chord,
@@ -76,103 +77,55 @@ impl<'a, 'b> PartialEq<dyn Event + 'b> for dyn Event + 'a {
         self.equals(other)
     }
 }
-//
-// impl PartialEq<Box<dyn Event>> for Box<dyn Event> {
-//     fn eq(&self, other: &(Box<dyn Event>)) -> bool {
-//         self.equals(other)
-//     }
-// }
-//
-// impl PartialEq<Box<dyn Event>> for Box<dyn Event> {
-//     fn eq(&self, other: &Box<dyn Event>) -> bool {
-//         self.as_ref() == other.as_ref()
-//     }
-// }
-
-pub fn same_symbols(
-    lhs: &Vec<Box<dyn Event>>,
-    rhs: &Vec<Box<dyn Event>>,
-) -> bool {
-    lhs.len() == rhs.len()
-        && lhs
-        .iter()
-        .enumerate()
-        .fold(true, |val, (i, s)| val && s.equals(&*rhs[i]))
-}
 
 pub fn parse_delimited_events(
-    mut input: &str,
+    input: &str,
     context: ContextPtr,
     start_delimiter: char,
     end_delimiter: char,
-    skip_start_delimiter: bool,
 )
     -> IResult<&str, Vec<Box<dyn Event>>> {
-    // println!("Parsing symbols: {input}");
-    if !skip_start_delimiter {
-        let (i, _) = terminated(char(start_delimiter), ws)(input)?;
-        input = i;
-    }
 
-    let (input, (skip_end_delimiter, symbols)) = parse_symbols(input, context.clone())?;
+    let (input, events) = delimited(
+        terminated(char(start_delimiter), ws),
+        |i| parse_events(i, context.clone()),
+        terminated(char(end_delimiter), ws))(input)?;
 
-    if !skip_end_delimiter {
-        // println!("Not already terminated!");
-        let (input, _) = terminated(char(end_delimiter), ws)(input)?;
-        return Ok((input, symbols));
-    }
+    // println!("Parsed delimited events: \"{events:?}\"");
+    // println!("Remaining: \"{input}\"");
 
-    // println!("Already terminated!");
-    Ok((input, symbols))
+    Ok((input, events))
 }
 
-fn parse_symbols(
+fn parse_events(
     input: &str,
     context: ContextPtr,
-) -> IResult<&str, (bool, Vec<Box<dyn Event>>)> {
+) -> IResult<&str, Vec<Box<dyn Event>>> {
     // println!("Checking symbols: \"{input}\"");
-    let (input, first) = parse_symbol(input, context.clone())?;
+    let (input, first) = parse_event(input, context.clone())?;
 
-    let first = first.expect("No initial symbol found");
+    let (input, mut events) = many0(preceded(
+        terminated(opt(char(',')), ws),
+        preceded(ws, |i| parse_event(i, context.clone())),
+    ))(input)?;
 
-    let (input, (already_terminated, mut symbols)) = fold_many0(
-        preceded(
-            terminated(opt(char(',')), ws),
-            preceded(ws, |i| parse_symbol(i, context.clone())),
-        ),
-        || (false, Vec::new()),
-        |(mut already_terminated, mut symbols): (bool, Vec<Box<dyn Event>>), maybe_symbol| {
-            match maybe_symbol {
-                Some(s) => symbols.push(s),
-                None => already_terminated = true,
-            }
+    events.insert(0, first);
+    // println!("Parsed events: \"{events:?}\"");
+    // println!("Remaining: \"{input}\"");
 
-            (already_terminated, symbols)
-        },
-    )(input)?;
-
-    symbols.insert(0, first);
-    // println!("Parsed symbols: \"{symbols:?}\"");
-
-    Ok((input, (already_terminated, symbols)))
+    Ok((input, events))
 }
 
-fn parse_symbol(
+fn parse_event(
     input: &str,
     context: ContextPtr,
-) -> IResult<&str, Option<Box<dyn Event>>> {
+) -> IResult<&str, Box<dyn Event>> {
     // println!("Checking symbol: \"{input}\"");
     let (_, next) = peek(one_of("abcdefghilmrst{_|\\"))(input)?;
 
     let (input, symbol) = match next {
         '\\' | '|' => {
-            let (input, maybe_tag) = Tag::parse(input, context)?;
-
-            let tag = match maybe_tag {
-                Some(tag) => tag,
-                None => return Ok((input, None))
-            };
-
+            let (input, tag) = Tag::parse(input, context)?;
             let b: Box<dyn Event> = Box::new(tag);
             (input, b)
         }
@@ -194,5 +147,8 @@ fn parse_symbol(
     };
     // println!("Parsed symbol: \"{symbol:?}\"");
 
-    Ok((input, Some(symbol)))
+    // Skip remaining whitespaces
+    let (input, _) = ws(input)?;
+
+    Ok((input, symbol))
 }

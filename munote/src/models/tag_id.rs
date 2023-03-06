@@ -4,9 +4,11 @@ use anyhow::{anyhow, Result};
 use colorize::AnsiColor;
 use lazy_static::lazy_static;
 use parse_display::FromStr;
+use serde::Deserialize;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, FromStr)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, FromStr, Deserialize)]
 #[display(style = "camelCase")]
+#[serde(rename_all="camelCase")]
 pub enum TagId {
     // Accidentals
     Accidental,
@@ -37,6 +39,7 @@ pub enum TagId {
     BeamsAuto,
     BeamsOff,
     BeamsFull,
+    #[display("fBeam")]
     FBeam,
 
     // Clef key meter
