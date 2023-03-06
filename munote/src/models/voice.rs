@@ -2,30 +2,31 @@ use nom::IResult;
 
 use crate::{
     context::ContextPtr,
-    symbol::Symbol,
+    event::Event,
     tag::Tag,
     tag_id::TagId,
 };
-use crate::symbol::parse_delimited_symbols;
+use crate::event::parse_delimited_events;
 
 #[derive(Debug)]
 pub struct Voice {
     pub staff: u8,
-    pub symbols: Vec<Box<dyn Symbol>>,
+    pub events: Vec<Box<dyn Event>>,
+    // pub range_tags: Vec<RangeTag>,
 }
 
 impl Voice {
-    pub fn new(staff: u8, symbols: Vec<Box<dyn Symbol>>) -> Self {
-        Self { staff, symbols }
+    pub fn new(staff: u8, events: Vec<Box<dyn Event>>) -> Self {
+        Self { staff, events }
     }
 
     pub fn parse<'a>(input: &str, context: ContextPtr) -> IResult<&str, Self> {
-        let (input, symbols) = parse_delimited_symbols(input, context.clone(), '[', ']', false)?;
+        let (input, events) = parse_delimited_events(input, context.clone(), '[', ']', false)?;
 
         let ctx = context.borrow();
-        let staff = ctx.get_tag(TagId::Staff).and_then(Tag::as_number);
+        let staff = None;//ctx.get_tag(TagId::Staff).and_then(Tag::as_number);
 
-        Ok((input, Voice::new(staff.unwrap_or(1.0) as u8, symbols)))
+        Ok((input, Voice::new(staff.unwrap_or(1.0) as u8, events)))
     }
 }
 
@@ -57,7 +58,7 @@ mod tests {
     fn parse_one_note() -> Result<()> {
         let voice = parse_voice("[ a1 ]")?;
 
-        assert!(voice.symbols[0].equals(&Note::from_name(Diatonic::A)));
+        assert!(voice.events[0].equals(&Note::from_name(Diatonic::A)));
 
         Ok(())
     }
@@ -66,10 +67,10 @@ mod tests {
     fn parse_notes_and_rests() -> Result<()> {
         let voice = parse_voice("[ a1 _ ]")?;
 
-        assert_eq!(voice.symbols.len(), 2);
+        assert_eq!(voice.events.len(), 2);
 
-        assert!(voice.symbols[0].equals(&Note::from_name(Diatonic::A)));
-        assert!(voice.symbols[1].equals(&Rest::default()));
+        assert!(voice.events[0].equals(&Note::from_name(Diatonic::A)));
+        assert!(voice.events[1].equals(&Rest::default()));
 
         Ok(())
     }
@@ -78,7 +79,7 @@ mod tests {
     fn parse_chord() -> Result<()> {
         let voice = parse_voice("[ { a1*2, b } ]")?;
 
-        assert_eq!(voice.symbols.len(), 1);
+        assert_eq!(voice.events.len(), 1);
 
         let chord = Chord::new(
             vec![
@@ -89,8 +90,8 @@ mod tests {
         );
 
         println!("{chord:?}");
-        println!("{:?}", voice.symbols[0]);
-        assert!(voice.symbols[0].equals(&chord));
+        println!("{:?}", voice.events[0]);
+        assert!(voice.events[0].equals(&chord));
 
         Ok(())
     }
@@ -99,7 +100,7 @@ mod tests {
     fn parse_tag() -> Result<()> {
         let voice = parse_voice("[ \\meter<\"2/4\"> a1 ]")?;
 
-        assert_eq!(voice.symbols.len(), 2);
+        assert_eq!(voice.events.len(), 2);
 
         Ok(())
     }
@@ -107,7 +108,13 @@ mod tests {
     #[test]
     fn convert_begin_end() -> Result<()> {
         let voice = parse_voice("[ \\tieBegin d e \\tieEnd ]")?;
-        assert_eq!(voice.symbols.len(), 1);
+        assert_eq!(voice.events.len(), 2);
+        todo!();
+        // assert_eq!(voice.range_tags.len(), 1);
+        // assert_eq!(voice.range_tags[0], RangeTag::from_id(TagId::Tie).with_events(vec![
+        //     Box::new(Note::from_name(Diatonic::D)),
+        //     Box::new(Note::from_name(Diatonic::E)),
+        // ]));
 
         // assert!(tag.symbols[0].equals(&Note::from_name(Diatonic::D)));
         // assert!(tag.symbols[1].equals(&Note::from_name(Diatonic::E)));

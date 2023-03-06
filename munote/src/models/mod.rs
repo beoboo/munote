@@ -2,8 +2,8 @@ use nom::{
     bytes::complete::take_while,
     character::complete::{alpha1, alphanumeric0},
     combinator::recognize,
-    sequence::preceded,
     IResult,
+    sequence::preceded,
 };
 
 pub mod accidentals;
@@ -15,13 +15,14 @@ pub mod duration;
 pub mod note;
 pub mod rest;
 pub mod score;
-pub mod symbol;
+pub mod event;
 pub mod tag;
 pub mod tag_id;
 pub mod tag_param;
 pub mod unit;
 pub mod voice;
 pub mod error;
+pub mod range_tag;
 
 fn string(input: &str) -> IResult<&str, &str> {
     recognize(preceded(alpha1, alphanumeric0))(input)

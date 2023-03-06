@@ -6,13 +6,13 @@ use crate::{
     context::ContextPtr,
     duration::Duration,
     impl_symbol_for,
-    symbol::{same_symbols, Symbol},
+    event::{same_symbols, Event},
 };
-use crate::symbol::parse_delimited_symbols;
+use crate::event::parse_delimited_events;
 
 #[derive(Clone, Debug)]
 pub struct Chord {
-    pub symbols: Vec<Box<dyn Symbol>>,
+    pub symbols: Vec<Box<dyn Event>>,
     pub duration: Duration,
 }
 
@@ -26,12 +26,12 @@ impl PartialEq for Chord {
 impl_symbol_for!(Chord);
 
 impl Chord {
-    pub fn new(symbols: Vec<Box<dyn Symbol>>, duration: Duration) -> Self {
+    pub fn new(symbols: Vec<Box<dyn Event>>, duration: Duration) -> Self {
         Self { symbols, duration }
     }
 
     pub fn parse(input: &str, context: ContextPtr) -> IResult<&str, Self> {
-        let (input, symbols) = parse_delimited_symbols(input, context.clone(), '{', '}', false)?;
+        let (input, symbols) = parse_delimited_events(input, context.clone(), '{', '}', false)?;
 
         let ctx = context.borrow();
 
@@ -150,8 +150,8 @@ mod tests {
     }
 
     fn assert_same_symbols(
-        lhs: Vec<Box<dyn Symbol>>,
-        rhs: Vec<Box<dyn Symbol>>,
+        lhs: Vec<Box<dyn Event>>,
+        rhs: Vec<Box<dyn Event>>,
     ) {
         assert_eq!(lhs.len(), rhs.len());
 

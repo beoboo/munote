@@ -5,6 +5,7 @@ use std::{
 };
 
 use crate::{duration::Duration, tag::Tag, tag_id::TagId};
+use crate::range_tag::RangeTag;
 
 pub struct Ptr<T> {
     inner: Rc<RefCell<T>>,
@@ -49,7 +50,7 @@ impl<T: Default> Default for Ptr<T> {
 pub struct Context {
     pub octave: i8,
     pub duration: Duration,
-    pub tags: HashMap<TagId, Tag>,
+    pub range_tags: HashMap<TagId, RangeTag>,
 }
 
 impl Default for Context {
@@ -57,18 +58,18 @@ impl Default for Context {
         Self {
             octave: 1,
             duration: Duration::default(),
-            tags: HashMap::new(),
+            range_tags: HashMap::new(),
         }
     }
 }
 
 impl Context {
-    pub fn add_tag(&mut self, tag: Tag) {
-        self.tags.insert(tag.id, tag);
+    pub fn add_tag(&mut self, tag: RangeTag) {
+        self.range_tags.insert(tag.id, tag);
     }
 
-    pub fn get_tag(&self, id: TagId) -> Option<&Tag> {
-        self.tags.get(&id)
+    pub fn get_tag(&self, id: TagId) -> Option<&RangeTag> {
+        self.range_tags.get(&id)
     }
 }
 
@@ -82,9 +83,10 @@ mod tests {
     fn add_tag() {
         let mut ctx = Context::default();
 
-        let tag = Tag::from_id(TagId::Bar);
-        ctx.add_tag(tag.clone());
-
-        assert_eq!(ctx.get_tag(TagId::Bar).unwrap(), &tag);
+        todo!()
+        // let tag = RangeTag::from_id(TagId::Bar);
+        // ctx.add_tag(tag.clone());
+        //
+        // assert_eq!(ctx.get_tag(TagId::Bar).unwrap(), &tag);
     }
 }

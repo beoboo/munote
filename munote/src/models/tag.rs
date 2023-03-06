@@ -8,24 +8,24 @@ use crate::{
     context::ContextPtr,
     impl_symbol_for,
     models::ws,
-    symbol::{same_symbols, Symbol},
+    event::{same_symbols, Event},
     tag_id::TagId,
     tag_param::TagParam,
 };
-use crate::symbol::parse_delimited_symbols;
+use crate::event::parse_delimited_events;
 
 #[derive(Debug, Clone)]
 pub struct Tag {
     pub id: TagId,
     pub params: Vec<TagParam>,
-    pub symbols: Vec<Box<dyn Symbol>>,
+    pub events: Vec<Box<dyn Event>>,
 }
 
 impl PartialEq for Tag {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
             && self.params == other.params
-            && same_symbols(&self.symbols, &other.symbols)
+            && same_symbols(&self.events, &other.events)
     }
 }
 
@@ -35,12 +35,12 @@ impl Tag {
     pub fn new(
         id: TagId,
         params: Vec<TagParam>,
-        symbols: Vec<Box<dyn Symbol>>,
+        events: Vec<Box<dyn Event>>,
     ) -> Self {
         Self {
             id,
             params,
-            symbols,
+            events,
         }
     }
 
@@ -53,8 +53,8 @@ impl Tag {
         self
     }
 
-    pub fn with_symbol(mut self, symbol: Box<dyn Symbol>) -> Self {
-        self.symbols.push(symbol);
+    pub fn with_symbol(mut self, symbol: Box<dyn Event>) -> Self {
+        self.events.push(symbol);
         self
     }
 
@@ -85,7 +85,7 @@ impl Tag {
         // println!("\n\n\nParsing \"{input}\" for {id:?}{maybe_params:?}");
 
         let (input, maybe_symbols) = opt(
-            |s| parse_delimited_symbols(s, context.clone(), '(', ')', skip_start_delimiter),
+            |s| parse_delimited_events(s, context.clone(), '(', ')', skip_start_delimiter),
         )(input)?;
         // println!("\n\nParsing \"{input}\" for {id:?}
         //   params: {maybe_params:?}
@@ -99,7 +99,7 @@ impl Tag {
         );
 
         let mut context = context.borrow_mut();
-        context.add_tag(tag.clone());
+        // context.add_tag(tag.clone());
 
         // println!("\n\n\nParsed \"{tag:?}\"");
         Ok((input, Some(tag)))
@@ -282,10 +282,10 @@ mod tests {
         let tag = parse_tag("\\tie(d e)")?;
 
         assert_eq!(tag.id, TagId::Tie);
-        assert_eq!(tag.symbols.len(), 2);
+        assert_eq!(tag.events.len(), 2);
 
-        assert!(tag.symbols[0].equals(&Note::from_name(Diatonic::D)));
-        assert!(tag.symbols[1].equals(&Note::from_name(Diatonic::E)));
+        assert!(tag.events[0].equals(&Note::from_name(Diatonic::D)));
+        assert!(tag.events[1].equals(&Note::from_name(Diatonic::E)));
 
         Ok(())
     }
@@ -305,7 +305,7 @@ mod tests {
 
         assert_eq!(tag.id, TagId::Accidental);
         assert_eq!(tag.params, vec![TagParam::VarNumber("size".into(), 1.4)]);
-        assert!(tag.symbols[0].equals(
+        assert!(tag.events[0].equals(
             &Note::from_name(Diatonic::D).with_accidentals(Accidentals::Flat)
         ));
 
@@ -367,14 +367,14 @@ mod tests {
     #[test]
     fn nested_tag() -> Result<()> {
         let tag = parse_tag("\\lyrics<\"Hi\">(\\text<\"there\">(a))")?;
-        let expected: Box<dyn Symbol> = Box::new(
+        let expected: Box<dyn Event> = Box::new(
             Tag::from_id(TagId::Text)
                 .with_param(TagParam::String("there".into()))
                 .with_symbol(Box::new(Note::from_name(Diatonic::A))),
         );
 
         assert_eq!(tag.id, TagId::Lyrics);
-        assert_eq!(&tag.symbols[0], &expected);
+        assert_eq!(&tag.events[0], &expected);
 
         Ok(())
     }

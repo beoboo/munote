@@ -17,7 +17,7 @@ use crate::{
     duration::Duration,
     impl_symbol_for,
     models::ws,
-    symbol::Symbol,
+    event::Event,
 };
 
 #[derive(Clone, Debug, PartialEq)]
