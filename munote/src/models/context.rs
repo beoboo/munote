@@ -1,13 +1,10 @@
 use std::{
     cell::{Ref, RefCell, RefMut},
     collections::HashMap,
+    rc::Rc,
 };
 
-use crate::{
-    duration::Duration,
-    tag::{Tag, TagId},
-};
-use std::rc::Rc;
+use crate::{duration::Duration, tag::Tag, tag_id::TagId};
 
 pub struct Ptr<T> {
     inner: Rc<RefCell<T>>,
@@ -80,7 +77,6 @@ pub type ContextPtr = Ptr<Context>;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tag::TagId;
 
     #[test]
     fn add_tag() {

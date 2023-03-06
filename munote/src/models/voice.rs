@@ -1,11 +1,15 @@
-use nom::{character::complete::char, sequence::delimited, IResult};
-use nom::sequence::terminated;
+use nom::{
+    character::complete::char,
+    sequence::{delimited, terminated},
+    IResult,
+};
 
 use crate::{
     context::ContextPtr,
     models::ws,
     symbol::{parse_symbols, Symbol},
-    tag::{Tag, TagId},
+    tag::Tag,
+    tag_id::TagId,
 };
 
 #[derive(Debug)]
@@ -39,10 +43,10 @@ mod tests {
 
     use crate::{
         chord::Chord,
+        duration::Duration,
         note::{Diatonic, Note},
         rest::Rest,
     };
-    use crate::duration::Duration;
 
     use super::*;
 
@@ -84,10 +88,13 @@ mod tests {
 
         assert_eq!(voice.symbols.len(), 1);
 
-        let chord = Chord::new(vec![
-            Box::new(Note::from_name(Diatonic::A).with_duration(2, 1)),
-            Box::new(Note::from_name(Diatonic::B).with_duration(2, 1)),
-        ], Duration::new(2, 1));
+        let chord = Chord::new(
+            vec![
+                Box::new(Note::from_name(Diatonic::A).with_duration(2, 1)),
+                Box::new(Note::from_name(Diatonic::B).with_duration(2, 1)),
+            ],
+            Duration::new(2, 1),
+        );
 
         println!("{chord:?}");
         println!("{:?}", voice.symbols[0]);

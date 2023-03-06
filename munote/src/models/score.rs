@@ -4,13 +4,17 @@ use anyhow::{anyhow, Result};
 use nom::{
     character::complete::{char, one_of},
     combinator::peek,
-    IResult,
     multi::many0,
-    sequence::{delimited, preceded},
+    sequence::{delimited, preceded, terminated},
+    IResult,
 };
-use nom::sequence::terminated;
 
-use crate::{comment::all_comments, context::ContextPtr, models::ws, voice::Voice};
+use crate::{
+    comment::all_comments,
+    context::ContextPtr,
+    models::ws,
+    voice::Voice,
+};
 
 #[derive(Debug)]
 pub struct Score {
@@ -70,7 +74,7 @@ impl Score {
             _ => {
                 let (input, voice) = Voice::parse(&input, context)?;
                 (input, vec![voice])
-            }
+            },
         };
 
         Ok((input, Self::new(voices)))
@@ -81,7 +85,9 @@ fn parse_voices(input: &str, context: ContextPtr) -> IResult<&str, Vec<Voice>> {
     let (input, first) = Voice::parse(input, context.clone())?;
 
     let (input, mut voices) =
-        many0(preceded(terminated(char(','), ws), |i| Voice::parse(i, context.clone())))(input)?;
+        many0(preceded(terminated(char(','), ws), |i| {
+            Voice::parse(i, context.clone())
+        }))(input)?;
 
     voices.insert(0, first);
 

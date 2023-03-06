@@ -6,9 +6,10 @@ use crate::{
     context::ContextPtr,
     dots::Dots,
     duration::Duration,
+    impl_symbol_for,
+    models::ws,
     symbol::Symbol,
 };
-use crate::models::ws;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Rest {
@@ -16,29 +17,14 @@ pub struct Rest {
     pub dots: Dots,
 }
 
+impl_symbol_for!(Rest);
+
 impl Default for Rest {
     fn default() -> Self {
         Self {
             duration: Duration::default(),
             dots: Dots::default(),
         }
-    }
-}
-
-impl Symbol for Rest {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn equals(&self, other: &dyn Symbol) -> bool {
-        other
-            .as_any()
-            .downcast_ref::<Self>()
-            .map_or(false, |a| self == a)
-    }
-
-    fn clone_box(&self) -> Box<dyn Symbol> {
-        Box::new((*self).clone())
     }
 }
 

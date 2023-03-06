@@ -15,9 +15,10 @@ use crate::{
     context::ContextPtr,
     dots::Dots,
     duration::Duration,
+    impl_symbol_for,
+    models::ws,
     symbol::Symbol,
 };
-use crate::models::ws;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Note {
@@ -27,6 +28,8 @@ pub struct Note {
     pub duration: Duration,
     pub dots: Dots,
 }
+
+impl_symbol_for!(Note);
 
 impl Note {
     pub fn new(
@@ -94,23 +97,6 @@ impl Note {
         context.duration = duration;
 
         Ok((input, Note::new(name, accidentals, octave, duration, dots)))
-    }
-}
-
-impl Symbol for Note {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn equals(&self, other: &dyn Symbol) -> bool {
-        other
-            .as_any()
-            .downcast_ref::<Self>()
-            .map_or(false, |a| self == a)
-    }
-
-    fn clone_box(&self) -> Box<dyn Symbol> {
-        Box::new((*self).clone())
     }
 }
 

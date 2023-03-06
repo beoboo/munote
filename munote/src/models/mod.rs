@@ -1,7 +1,10 @@
-use nom::{bytes::complete::take_while, IResult};
-use nom::character::complete::{alpha1, alphanumeric0};
-use nom::combinator::recognize;
-use nom::sequence::preceded;
+use nom::{
+    bytes::complete::take_while,
+    character::complete::{alpha1, alphanumeric0},
+    combinator::recognize,
+    sequence::preceded,
+    IResult,
+};
 
 pub mod accidentals;
 pub mod chord;
@@ -14,6 +17,9 @@ pub mod rest;
 pub mod score;
 pub mod symbol;
 pub mod tag;
+pub mod tag_id;
+pub mod tag_param;
+pub mod unit;
 pub mod voice;
 
 fn string(input: &str) -> IResult<&str, &str> {

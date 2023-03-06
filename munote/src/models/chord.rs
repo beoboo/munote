@@ -2,18 +2,17 @@ use std::any::Any;
 
 use nom::{
     character::complete::char,
+    sequence::{delimited, terminated},
     IResult,
-    sequence::delimited,
 };
-use nom::sequence::terminated;
 
 use crate::{
     context::ContextPtr,
     duration::Duration,
+    impl_symbol_for,
     models::ws,
-    symbol::Symbol,
+    symbol::{parse_symbols, same_symbols, Symbol},
 };
-use crate::symbol::{parse_symbols, same_symbols};
 
 #[derive(Clone, Debug)]
 pub struct Chord {
@@ -28,22 +27,7 @@ impl PartialEq for Chord {
     }
 }
 
-impl Symbol for Chord {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn equals(&self, other: &dyn Symbol) -> bool {
-        other
-            .as_any()
-            .downcast_ref::<Self>()
-            .map_or(false, |a| self == a)
-    }
-
-    fn clone_box(&self) -> Box<dyn Symbol> {
-        Box::new((*self).clone())
-    }
-}
+impl_symbol_for!(Chord);
 
 impl Chord {
     pub fn new(symbols: Vec<Box<dyn Symbol>>, duration: Duration) -> Self {
@@ -62,32 +46,23 @@ impl Chord {
         Ok((input, Chord::new(symbols, ctx.duration)))
     }
 }
-//
-// fn parse_symbols(input: &str, context: ContextPtr) -> IResult<&str, Vec<Box<dyn Symbol>>> {
-//     let (input, first) = Note::parse(input, context.clone())?;
-//
-//     let (input, mut notes) =
-//         many0(preceded(comma, |i| Note::parse(i, context.clone())))(input)?;
-//
-//     notes.insert(0, first);
-//
-//     Ok((input, notes))
-// }
 
 #[cfg(test)]
 mod tests {
     use anyhow::{anyhow, Result};
 
-    use crate::note::Note;
-    use crate::note::Diatonic;
-    use crate::tag::{Tag, TagId, TagParam};
+    use crate::{
+        note::{Diatonic, Note},
+        tag::Tag,
+        tag_id::TagId,
+        tag_param::TagParam,
+    };
 
     use super::*;
 
     fn parse_chord(input: &str) -> Result<Chord> {
         let context = ContextPtr::default();
 
-        println!("Here");
         let (input, chord) =
             Chord::parse(input, context).map_err(|e| anyhow!("{}", e))?;
 
@@ -100,7 +75,10 @@ mod tests {
     fn parse_one() -> Result<()> {
         let chord = parse_chord("{ a1 }")?;
 
-        assert_same_symbols(chord.symbols, vec![Box::new(Note::from_name(Diatonic::A))]);
+        assert_same_symbols(
+            chord.symbols,
+            vec![Box::new(Note::from_name(Diatonic::A))],
+        );
 
         Ok(())
     }
@@ -111,7 +89,10 @@ mod tests {
 
         assert_same_symbols(
             chord.symbols,
-            vec![Box::new(Note::from_name(Diatonic::A)), Box::new(Note::from_name(Diatonic::B))],
+            vec![
+                Box::new(Note::from_name(Diatonic::A)),
+                Box::new(Note::from_name(Diatonic::B)),
+            ],
         );
 
         Ok(())
@@ -120,8 +101,6 @@ mod tests {
     #[test]
     fn duration() -> Result<()> {
         let chord = parse_chord("{ a1*2, b1*4 }")?;
-
-        println!("{chord:?}");
 
         assert_eq!(chord.duration, Duration::new(4, 1));
 
@@ -167,7 +146,10 @@ mod tests {
             chord.symbols,
             vec![
                 Box::new(Note::from_name(Diatonic::C)),
-                Box::new(Tag::from_id(TagId::Staff).with_param(TagParam::Number(1.0))),
+                Box::new(
+                    Tag::from_id(TagId::Staff)
+                        .with_param(TagParam::Number(1.0)),
+                ),
                 Box::new(Note::from_name(Diatonic::G)),
             ],
         );
@@ -175,7 +157,10 @@ mod tests {
         Ok(())
     }
 
-    fn assert_same_symbols(lhs: Vec<Box<dyn Symbol>>, rhs: Vec<Box<dyn Symbol>>) {
+    fn assert_same_symbols(
+        lhs: Vec<Box<dyn Symbol>>,
+        rhs: Vec<Box<dyn Symbol>>,
+    ) {
         assert_eq!(lhs.len(), rhs.len());
 
         for (i, s) in lhs.iter().enumerate() {
