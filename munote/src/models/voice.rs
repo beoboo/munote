@@ -1,18 +1,12 @@
-use std::convert::From;
-use std::str::FromStr;
+use nom::{
+    character::complete::{char, one_of},
+    combinator::peek,
+    multi::many0,
+    sequence::{delimited, preceded},
+    IResult,
+};
 
-use nom::{IResult, Parser};
-use nom::character::complete::{char, one_of};
-use nom::combinator::peek;
-use nom::multi::many0;
-use nom::sequence::{delimited, preceded};
-use crate::chord::Chord;
-
-use crate::context::{Context, ContextPtr};
-use crate::models::ws;
-use crate::note::Note;
-use crate::rest::Rest;
-use crate::symbol::Symbol;
+use crate::{chord::Chord, context::ContextPtr, models::ws, note::Note, rest::Rest, symbol::Symbol};
 
 #[derive(Debug)]
 pub struct Voice {
@@ -25,7 +19,11 @@ impl Voice {
     }
 
     pub fn parse<'a>(input: &str, context: ContextPtr) -> IResult<&str, Self> {
-        let (input, symbols) = delimited(char('['), delimited(ws, |s| parse_symbols(s, context.clone()), ws), char(']'))(input)?;
+        let (input, symbols) = delimited(
+            char('['),
+            delimited(ws, |s| parse_symbols(s, context.clone()), ws),
+            char(']'),
+        )(input)?;
 
         Ok((input, Voice::new(symbols)))
     }
@@ -43,8 +41,8 @@ fn parse_symbols(input: &str, context: ContextPtr) -> IResult<&str, Vec<Box<dyn 
     Ok((input, symbols))
 }
 
-fn parse(mut input: &str) -> IResult<&str, Box<dyn Symbol>> {
-    let mut context = ContextPtr::default();
+fn parse(input: &str) -> IResult<&str, Box<dyn Symbol>> {
+    let context = ContextPtr::default();
     parse_next(input, context)
 }
 
@@ -75,11 +73,8 @@ fn parse_next(input: &str, context: ContextPtr) -> IResult<&str, Box<dyn Symbol>
 #[cfg(test)]
 mod tests {
     use anyhow::{anyhow, Result};
-    use crate::chord::Chord;
-    use crate::duration::Duration;
 
-    use crate::note::Diatonic;
-    use crate::rest::Rest;
+    use crate::{chord::Chord, note::Diatonic, rest::Rest};
 
     use super::*;
 
@@ -102,7 +97,6 @@ mod tests {
 
     #[test]
     fn parse_notes_and_rests() -> Result<()> {
-        let mut context = Context::default();
         let voice = parse_voice("[ a1 _ ]")?;
 
         assert_eq!(voice.symbols.len(), 2);
@@ -115,7 +109,6 @@ mod tests {
 
     #[test]
     fn parse_chord() -> Result<()> {
-        let mut context = Context::default();
         let voice = parse_voice("[ { a1*2, b } ]")?;
 
         assert_eq!(voice.symbols.len(), 1);

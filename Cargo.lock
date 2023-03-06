@@ -585,8 +585,19 @@ name = "munote"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "munote-derive",
  "nom",
  "parse-display",
+]
+
+[[package]]
+name = "munote-derive"
+version = "0.1.0"
+dependencies = [
+ "parse-display",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

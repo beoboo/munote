@@ -1,7 +1,7 @@
 use std::cell::{Ref, RefCell, RefMut};
-use std::fmt::Debug;
-use std::rc::Rc;
+
 use crate::duration::Duration;
+use std::rc::Rc;
 
 pub struct Ptr<T> {
     inner: Rc<RefCell<T>>,
@@ -9,27 +9,35 @@ pub struct Ptr<T> {
 
 impl<T> Clone for Ptr<T> {
     fn clone(&self) -> Self {
-        Ptr{ inner: self.inner.clone() }
+        Ptr {
+            inner: self.inner.clone(),
+        }
     }
 }
 
 impl<T> Ptr<T> {
     pub fn new(inner: T) -> Self {
         Self {
-            inner: Rc::new(RefCell::new(inner))
+            inner: Rc::new(RefCell::new(inner)),
         }
     }
 
-    pub fn borrow<'a>(&'a self) -> Ref<'a, T> where T:'a {
+    pub fn borrow<'a>(&'a self) -> Ref<'a, T>
+    where
+        T: 'a,
+    {
         (*self.inner).borrow()
     }
 
-    pub fn borrow_mut<'a>(&'a mut self) -> RefMut<'a, T> where T:'a {
+    pub fn borrow_mut<'a>(&'a mut self) -> RefMut<'a, T>
+    where
+        T: 'a,
+    {
         (*self.inner).borrow_mut()
     }
 }
 
-impl <T: Default> Default for Ptr<T> {
+impl<T: Default> Default for Ptr<T> {
     fn default() -> Self {
         Self::new(T::default())
     }

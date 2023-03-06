@@ -1,17 +1,19 @@
 use std::any::Any;
-use std::convert::From;
-use std::str::FromStr;
 
-use nom::character::complete::char;
-use nom::multi::many0;
-use nom::sequence::{delimited, preceded};
-use nom::{IResult, Parser};
+use nom::{
+    character::complete::char,
+    multi::many0,
+    sequence::{delimited, preceded},
+    IResult,
+};
 
-use crate::context::ContextPtr;
-use crate::duration::Duration;
-use crate::models::{comma, ws};
-use crate::note::Note;
-use crate::symbol::Symbol;
+use crate::{
+    context::ContextPtr,
+    duration::Duration,
+    models::{comma, ws},
+    note::Note,
+    symbol::Symbol,
+};
 
 #[derive(Debug, PartialEq)]
 pub struct Chord {

@@ -1,6 +1,5 @@
-use std::any::Any;
-use std::fmt::Debug;
 use crate::duration::Duration;
+use std::{any::Any, fmt::Debug};
 
 pub trait Symbol: Debug {
     fn as_any(&self) -> &dyn Any;

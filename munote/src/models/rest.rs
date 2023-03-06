@@ -1,11 +1,8 @@
 use std::any::Any;
 
-use nom::combinator::opt;
-use nom::{bytes::complete::tag, IResult};
+use nom::{bytes::complete::tag, combinator::opt, IResult};
 
-use crate::symbol::Symbol;
-use crate::{dots::Dots, duration::Duration};
-use crate::context::{Context, ContextPtr};
+use crate::{context::ContextPtr, dots::Dots, duration::Duration, symbol::Symbol};
 
 #[derive(Debug, PartialEq)]
 pub struct Rest {
@@ -52,27 +49,25 @@ impl Rest {
 
         Ok((
             input,
-            Rest::new( maybe_duration.unwrap_or(context.borrow().duration), dots),
+            Rest::new(maybe_duration.unwrap_or(context.borrow().duration), dots),
         ))
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::context::{Context, Ptr};
     use anyhow::{anyhow, Result};
-    use crate::context::Ptr;
 
     use super::*;
 
     fn parse_rest(input: &str) -> Result<Rest> {
-        let context = Ptr::new(Context::default());
+        let context = ContextPtr::default();
 
-        let (_, note) = Rest::parse(input, context)
-            .map_err(|e| anyhow!("{}", e))?;
+        let (_, note) = Rest::parse(input, context).map_err(|e| anyhow!("{}", e))?;
 
         Ok(note)
     }
-
 
     #[test]
     fn parse() -> Result<()> {

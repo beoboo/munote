@@ -1,18 +1,16 @@
-use std::{convert::From, str::FromStr};
-use std::any::Any;
+use std::{any::Any, convert::From, str::FromStr};
 
 use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{i8, one_of},
     combinator::{map, map_res, opt, value},
-    IResult, Parser,
+    IResult,
+    Parser,
 };
 use parse_display::FromStr;
 
-use crate::{accidentals::Accidentals, dots::Dots, duration::Duration};
-use crate::context::{Context, ContextPtr, Ptr};
-use crate::symbol::Symbol;
+use crate::{accidentals::Accidentals, context::ContextPtr, dots::Dots, duration::Duration, symbol::Symbol};
 
 #[derive(Debug, PartialEq)]
 pub struct Note {
@@ -60,7 +58,7 @@ impl Note {
             map(Diatonic::parse, |d| NoteName::from(d)),
             map(Solfege::parse, |s| NoteName::from(s)),
         ))
-            .parse(input)?;
+        .parse(input)?;
 
         let (input, accidentals) = Accidentals::parse(input)?;
         let (input, maybe_octave) = opt(i8).parse(input)?;
@@ -68,22 +66,13 @@ impl Note {
         let (input, dots) = Dots::parse(input)?;
 
         let mut context = context.borrow_mut();
-        let octave =  maybe_octave.unwrap_or(context.octave);
-        let duration =  maybe_duration.unwrap_or(context.duration);
+        let octave = maybe_octave.unwrap_or(context.octave);
+        let duration = maybe_duration.unwrap_or(context.duration);
 
         context.octave = octave;
         context.duration = duration;
 
-        Ok((
-            input,
-            Note::new(
-                name,
-                accidentals,
-                octave,
-                duration,
-                dots,
-            ),
-        ))
+        Ok((input, Note::new(name, accidentals, octave, duration, dots)))
     }
 }
 
@@ -93,10 +82,7 @@ impl Symbol for Note {
     }
 
     fn equals(&self, other: &dyn Symbol) -> bool {
-        other
-            .as_any()
-            .downcast_ref::<Self>()
-            .map_or(false, |a| self == a)
+        other.as_any().downcast_ref::<Self>().map_or(false, |a| self == a)
     }
 
     fn octave(&self) -> i8 {
@@ -204,15 +190,17 @@ pub enum NoteName {
 mod tests {
     use anyhow::{anyhow, Result};
 
-    use crate::accidentals::Accidentals;
+    use crate::{
+        accidentals::Accidentals,
+        context::{Context, Ptr},
+    };
 
     use super::*;
 
     fn parse_note(input: &str) -> Result<Note> {
         let context = ContextPtr::default();
 
-        let (_, note) = Note::parse(input, context)
-            .map_err(|e| anyhow!("{}", e))?;
+        let (_, note) = Note::parse(input, context).map_err(|e| anyhow!("{}", e))?;
 
         Ok(note)
     }
@@ -270,7 +258,7 @@ mod tests {
 
     #[test]
     fn same_octave() -> Result<()> {
-        let mut context = Ptr::new(Context {
+        let context = Ptr::new(Context {
             octave: 2,
             ..Default::default()
         });
@@ -284,7 +272,7 @@ mod tests {
     #[test]
     fn same_duration() -> Result<()> {
         let duration = Duration::new(2, 1);
-        let mut context = Ptr::new(Context {
+        let context = Ptr::new(Context {
             duration,
             ..Default::default()
         });

@@ -1,13 +1,10 @@
-use std::cmp::Ordering;
 use nom::{
     bytes::complete::tag,
-    character::complete::{char as ch, u8},
-    combinator::opt,
+    character::complete::{char as ch, one_of, u8},
+    combinator::{opt, peek},
     IResult,
 };
-use nom::character::complete::one_of;
-use nom::combinator::{peek, verify};
-use nom::sequence::preceded;
+use std::cmp::Ordering;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Duration {
