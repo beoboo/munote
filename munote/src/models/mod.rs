@@ -7,7 +7,9 @@ pub mod dots;
 pub mod duration;
 pub mod note;
 pub mod rest;
+pub mod score;
 pub mod symbol;
+pub mod tag;
 pub mod voice;
 
 fn ws(input: &str) -> IResult<&str, &str> {

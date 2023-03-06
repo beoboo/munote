@@ -1,14 +1,31 @@
 use std::string::String;
 
+use anyhow::Result;
 use cucumber::{given, then, when};
+use cucumber::codegen::anyhow;
+use cucumber::gherkin::Step;
+use munote::context::ContextPtr;
+use munote::score::Score;
 
 use crate::MusicWorld;
 
 #[given(expr = "\"{word}\" file with:")]
-fn given_filename(_w: &mut MusicWorld, _file_name: String) {}
+fn given_filename(w: &mut MusicWorld, step: &Step, file_name: String) {
+    let content = step.docstring().unwrap();
+
+    w.files.insert(file_name, content.clone());
+}
 
 #[when(expr = "I parse \"{word}\"")]
-fn parse_filename(_w: &mut MusicWorld, _file_name: String) {}
+fn parse_filename(w: &mut MusicWorld, file_name: String) -> Result<()> {
+    let content = &w.files[&file_name];
+
+    let score = Score::parse(content.as_str(), ContextPtr::default())?;
+
+    w.score = Some(score);
+
+    Ok(())
+}
 
 #[then(expr = "there are {int} staff(s)")]
 fn check_staff_count(w: &mut MusicWorld, num: usize) {

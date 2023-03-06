@@ -1,12 +1,7 @@
-use nom::{
-    character::complete::{char, one_of},
-    combinator::peek,
-    multi::many0,
-    sequence::{delimited, preceded},
-    IResult,
-};
+use nom::{character::complete::char, sequence::delimited, IResult};
 
-use crate::{chord::Chord, context::ContextPtr, models::ws, note::Note, rest::Rest, symbol::Symbol};
+use crate::symbol::parse_symbols;
+use crate::{context::ContextPtr, models::ws, note::Note, symbol::Symbol};
 
 #[derive(Debug)]
 pub struct Voice {
@@ -27,47 +22,6 @@ impl Voice {
 
         Ok((input, Voice::new(symbols)))
     }
-}
-
-fn parse_symbols(input: &str, context: ContextPtr) -> IResult<&str, Vec<Box<dyn Symbol>>> {
-    let (input, first) = parse(input)?;
-
-    // Ok((input, vec![first]))
-
-    let (input, mut symbols) = many0(preceded(ws, |i| parse_next(i, context.clone())))(input)?;
-
-    symbols.insert(0, first);
-
-    Ok((input, symbols))
-}
-
-fn parse(input: &str) -> IResult<&str, Box<dyn Symbol>> {
-    let context = ContextPtr::default();
-    parse_next(input, context)
-}
-
-fn parse_next(input: &str, context: ContextPtr) -> IResult<&str, Box<dyn Symbol>> {
-    let (_, next) = peek(one_of("abcdefghilmrst{_"))(input)?;
-
-    let (input, symbol) = match next {
-        '{' => {
-            let (input, chord) = Chord::parse(input, context)?;
-            let b: Box<dyn Symbol> = Box::new(chord);
-            (input, b)
-        },
-        '_' => {
-            let (input, rest) = Rest::parse(input, context)?;
-            let b: Box<dyn Symbol> = Box::new(rest);
-            (input, b)
-        },
-        _ => {
-            let (input, note) = Note::parse(input, context)?;
-            let b: Box<dyn Symbol> = Box::new(note);
-            (input, b)
-        },
-    };
-
-    Ok((input, symbol))
 }
 
 #[cfg(test)]

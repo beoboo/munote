@@ -1,9 +1,11 @@
+use std::collections::HashMap;
 use cucumber::*;
-use munote::Score;
+use munote::score::Score;
 
 #[derive(Debug, Default, World)]
 pub struct MusicWorld {
-    score: Option<Score>,
+    pub files: HashMap<String, String>,
+    pub score: Option<Score>,
 }
 
 impl MusicWorld {
