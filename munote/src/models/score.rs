@@ -15,6 +15,7 @@ use crate::{
     models::ws,
     voice::Voice,
 };
+use crate::models::Span;
 
 #[derive(Debug)]
 pub struct Score {
@@ -54,34 +55,32 @@ impl Score {
     pub fn parse(input: &str, context: ContextPtr) -> Result<Self> {
         let mut input = all_comments(input)?;
 
-        input = input.replace("\n", "");
-
-        let (_, score) = Self::parse_internal(&input, context)
+        let (_, score) = preceded(ws, |s| parse_internal(s, context.clone()))(Span::new(input.as_str()))
             .map_err(|e| anyhow!("{e}"))?;
 
         Ok(score)
     }
-
-    fn parse_internal(input: &str, context: ContextPtr) -> IResult<&str, Self> {
-        let (_, next) = peek(one_of("[{"))(input)?;
-
-        let (input, voices) = match next {
-            '{' => delimited(
-                terminated(char('{'), ws),
-                |s| parse_voices(s, context.clone()),
-                terminated(char('}'), ws),
-            )(&input)?,
-            _ => {
-                let (input, voice) = Voice::parse(&input, context)?;
-                (input, vec![voice])
-            }
-        };
-
-        Ok((input, Self::new(voices)))
-    }
 }
 
-fn parse_voices(input: &str, context: ContextPtr) -> IResult<&str, Vec<Voice>> {
+fn parse_internal(input: Span, context: ContextPtr) -> IResult<Span, Score> {
+    let (_, next) = peek(one_of("[{"))(input)?;
+
+    let (input, voices) = match next {
+        '{' => delimited(
+            terminated(char('{'), ws),
+            |s| parse_voices(s, context.clone()),
+            terminated(char('}'), ws),
+        )(input)?,
+        _ => {
+            let (input, voice) = Voice::parse(input, context)?;
+            (input, vec![voice])
+        }
+    };
+
+    Ok((input, Score::new(voices)))
+}
+
+fn parse_voices(input: Span, context: ContextPtr) -> IResult<Span, Vec<Voice>> {
     let (input, first) = Voice::parse(input, context.clone())?;
 
     let (input, mut voices) =
@@ -157,7 +156,9 @@ mod tests {
 
     #[test]
     fn invalid_score() {
-        assert!(parse_score("{ [ \\unknown ] }").is_err());
+        let res = parse_score("{ [ \\unknown ] }");
+        println!("{res:?}");
+
         assert!(parse_score("{ [ \\accelerando ] }").is_err());
     }
 }

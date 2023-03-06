@@ -19,6 +19,7 @@ use crate::{
     models::ws,
     event::Event,
 };
+use crate::models::Span;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Note {
@@ -73,16 +74,15 @@ impl Note {
         self
     }
 
-    pub fn parse(input: &str, mut context: ContextPtr) -> IResult<&str, Self> {
+    pub fn parse(input: Span, mut context: ContextPtr) -> IResult<Span, Self> {
         let (input, name) = alt((
             map(Chromatic::parse, |c| NoteName::from(c)),
             map(Diatonic::parse, |d| NoteName::from(d)),
             map(Solfege::parse, |s| NoteName::from(s)),
-        ))
-        .parse(input)?;
+        ))(input)?;
 
         let (input, accidentals) = Accidentals::parse(input)?;
-        let (input, maybe_octave) = opt(i8).parse(input)?;
+        let (input, maybe_octave) = opt(i8)(input)?;
         let (input, maybe_duration) = opt(Duration::parse)(input)?;
         let (input, dots) = Dots::parse(input)?;
 
@@ -114,7 +114,7 @@ pub enum Diatonic {
 }
 
 impl Diatonic {
-    pub fn parse(input: &str) -> IResult<&str, Self> {
+    pub fn parse(input: Span) -> IResult<Span, Self> {
         map_res(one_of("abcdefgh"), |d| Self::from_str(&d.to_string()))(input)
     }
 }
@@ -136,7 +136,7 @@ pub enum Chromatic {
 }
 
 impl Chromatic {
-    pub fn parse(input: &str) -> IResult<&str, Self> {
+    pub fn parse(input: Span) -> IResult<Span, Self> {
         alt((
             value(Chromatic::Cis, tag("cis")),
             value(Chromatic::Dis, tag("dis")),
@@ -166,7 +166,7 @@ pub enum Solfege {
 }
 
 impl Solfege {
-    pub fn parse(input: &str) -> IResult<&str, Self> {
+    pub fn parse(input: Span) -> IResult<Span, Self> {
         alt((
             value(Solfege::Do, tag("do")),
             value(Solfege::Re, tag("re")),
@@ -206,12 +206,12 @@ mod tests {
     fn parse_note(input: &str) -> Result<Note> {
         let context = ContextPtr::default();
 
-        let (input, note) =
-            Note::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+        let (input, parsed) =
+            Note::parse(Span::new(input), context).map_err(|e| anyhow!("{}", e))?;
 
-        assert_eq!(input, "");
+        assert_eq!(*input.fragment(), "");
 
-        Ok(note)
+        Ok(parsed)
     }
 
     #[test]
@@ -272,7 +272,7 @@ mod tests {
             ..Default::default()
         });
 
-        let (_, note) = Note::parse("c", context)?;
+        let (_, note) = Note::parse("c".into(), context)?;
         assert_note(&note, Diatonic::C, 2);
 
         Ok(())
@@ -286,7 +286,7 @@ mod tests {
             ..Default::default()
         });
 
-        let (_, note) = Note::parse("c", context)?;
+        let (_, note) = Note::parse(Span::new("c"), context)?;
 
         assert_eq!(note.duration, duration);
         Ok(())

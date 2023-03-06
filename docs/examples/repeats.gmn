@@ -7,7 +7,7 @@ jumps to coda, to segno, etc.
 [
 	\clef<"g"> \meter<"3/4">
 
-	g2/16 f e d 
+	g2/16 f e d
 	\repeatBegin
 	c2/4  d b1 |
 	\volta<"1">(d2 \tie( {c2, f2, a } {d, f2, a })) \repeatEnd

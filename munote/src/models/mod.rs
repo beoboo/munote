@@ -5,6 +5,7 @@ use nom::{
     IResult,
     sequence::preceded,
 };
+use nom_locate::LocatedSpan;
 
 pub mod accidentals;
 pub mod chord;
@@ -26,16 +27,18 @@ pub mod range_tag;
 pub mod tag_validator;
 pub mod tag_definitions;
 
-fn string(input: &str) -> IResult<&str, &str> {
+type Span<'a> = LocatedSpan<&'a str>;
+
+fn string(input: Span) -> IResult<Span, Span> {
     recognize(preceded(alpha1, alphanumeric0))(input)
 }
 
-fn ws(input: &str) -> IResult<&str, &str> {
+fn ws(input: Span) -> IResult<Span, Span> {
     take_while(is_whitespace)(input)
 }
 
 fn is_whitespace(c: char) -> bool {
-    c == ' ' || c == '\t'
+    c == ' ' || c == '\t' || c == '\n'
 }
 
 #[cfg(test)]
@@ -46,10 +49,10 @@ mod tests {
 
     #[test]
     fn whitespaces() -> Result<()> {
-        let (input, res) = ws(" \t")?;
+        let (input, res) = ws(Span::new(" \t\n"))?;
 
-        assert_eq!(input, "");
-        assert_eq!(res, " \t");
+        assert_eq!(*input.fragment(), "");
+        assert_eq!(res, Span::new(" \t\n"));
 
         Ok(())
     }

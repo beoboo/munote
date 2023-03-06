@@ -5,6 +5,7 @@ use crate::{
     event::Event,
 };
 use crate::event::parse_delimited_events;
+use crate::models::Span;
 
 #[derive(Debug)]
 pub struct Voice {
@@ -18,7 +19,7 @@ impl Voice {
         Self { staff, events }
     }
 
-    pub fn parse<'a>(input: &str, context: ContextPtr) -> IResult<&str, Self> {
+    pub fn parse<'a>(input: Span, context: ContextPtr) -> IResult<Span, Self> {
         let (input, events) = parse_delimited_events(input, context.clone(), '[', ']')?;
 
         let ctx = context.borrow();
@@ -44,12 +45,12 @@ mod tests {
     fn parse_voice(input: &str) -> Result<Voice> {
         let context = ContextPtr::default();
 
-        let (input, voice) =
-            Voice::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+        let (input, parsed) =
+            Voice::parse(Span::new(input), context).map_err(|e| anyhow!("{}", e))?;
 
-        assert_eq!(input, "");
+        assert_eq!(*input.fragment(), "");
 
-        Ok(voice)
+        Ok(parsed)
     }
 
     #[test]

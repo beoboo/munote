@@ -5,6 +5,7 @@ use nom::{
     IResult,
 };
 use std::cmp::Ordering;
+use crate::models::Span;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Duration {
@@ -35,7 +36,7 @@ impl Duration {
         Self { num, denom }
     }
 
-    pub fn parse(input: &str) -> IResult<&str, Self> {
+    pub fn parse(input: Span) -> IResult<Span, Self> {
         peek(one_of("*/"))(input)?;
 
         let (input, num) = duration_num(input).unwrap_or((input, 1));
@@ -50,12 +51,12 @@ impl Duration {
     }
 }
 
-fn duration_num(input: &str) -> IResult<&str, u8> {
+fn duration_num(input: Span) -> IResult<Span, u8> {
     let (input, _) = ch('*')(input)?;
     u8(input)
 }
 
-fn duration_denom(input: &str) -> IResult<&str, u8> {
+fn duration_denom(input: Span) -> IResult<Span, u8> {
     let (input, _) = ch('/')(input)?;
     u8(input)
 }
@@ -63,20 +64,29 @@ fn duration_denom(input: &str) -> IResult<&str, u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anyhow::Result;
+    use anyhow::{anyhow, Result};
+
+    fn parse_duration(input: &str) -> Result<Duration> {
+        let (input, parsed) =
+            Duration::parse(Span::new(input)).map_err(|e| anyhow!("{}", e))?;
+
+        assert_eq!(*input.fragment(), "");
+
+        Ok(parsed)
+    }
 
     #[test]
-    fn parse_duration() -> Result<()> {
-        let (_, duration) = Duration::parse("*1")?;
+    fn valid() -> Result<()> {
+        let duration = parse_duration("*1")?;
         assert_eq!(duration, Duration::new(1, 1));
 
-        let (_, duration) = Duration::parse("*2/4")?;
+        let duration = parse_duration("*2/4")?;
         assert_eq!(duration, Duration::new(2, 4));
 
-        let (_, duration) = Duration::parse("/3")?;
+        let duration = parse_duration("/3")?;
         assert_eq!(duration, Duration::new(1, 3));
 
-        let (_, duration) = Duration::parse("*5ms")?;
+        let duration = parse_duration("*5ms")?;
         assert_eq!(duration, Duration::new(5, 1));
 
         Ok(())

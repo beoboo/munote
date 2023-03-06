@@ -7,11 +7,14 @@ use nom::{
     number::complete::float,
     sequence::{delimited, terminated, Tuple},
 };
+use nom::sequence::tuple;
+use regex::internal::Input;
 
 use crate::{
     models::{string, ws},
     unit::Unit,
 };
+use crate::models::Span;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TagParam {
@@ -24,7 +27,7 @@ pub enum TagParam {
 }
 
 impl TagParam {
-    pub fn parse(input: &str) -> IResult<&str, Self> {
+    pub fn parse(input: Span) -> IResult<Span, Self> {
         terminated(
             alt((
                 map(
@@ -39,7 +42,7 @@ impl TagParam {
                     |s| parse_var_number(s),
                     |(v, n)| TagParam::VarNumber(v, n),
                 ),
-                map(|s| parse_string(s), TagParam::String),
+                map(|s| parse_string(s), |s| TagParam::String(s.to_string())),
                 map(
                     |s| parse_number_unit(s),
                     |(n, u)| TagParam::NumberUnit(n, u),
@@ -51,39 +54,46 @@ impl TagParam {
     }
 }
 
-fn parse_string(input: &str) -> IResult<&str, String> {
+fn parse_string(input: Span) -> IResult<Span, Span> {
     let not_quote_slash = is_not("\"\\");
 
-    let check_string = verify(not_quote_slash, |s: &str| !s.is_empty());
+    let check_string = verify(not_quote_slash, |s: &Span| !s.is_empty());
 
     let (input, s) = delimited(char('"'), check_string, char('"'))(input)?;
 
-    Ok((input, s.to_string()))
+    Ok((input, s))
 }
 
-fn parse_number_unit(input: &str) -> IResult<&str, (f32, Unit)> {
+fn parse_number_unit(input: Span) -> IResult<Span, (f32, Unit)> {
     let (input, number) = float(input)?;
     let (input, unit) = Unit::parse(input)?;
 
     Ok((input, (number, unit)))
 }
 
-fn parse_var_string(input: &str) -> IResult<&str, (String, String)> {
+fn parse_var_string(input: Span) -> IResult<Span, (String, String)> {
     let (input, (name, _, val)) =
-        (string, delimited(ws, char('='), ws), |s| parse_string(s))
-            .parse(input)?;
+        tuple((
+            string,
+            delimited(ws, char('='), ws),
+            parse_string
+        ))(input)?;
 
-    Ok((input, (name.to_string(), val)))
+    Ok((input, (name.to_string(), val.to_string())))
 }
 
-fn parse_var_number(input: &str) -> IResult<&str, (String, f32)> {
+fn parse_var_number(input: Span) -> IResult<Span, (String, f32)> {
     let (input, (name, _, num)) =
-        (string, delimited(ws, char('='), ws), |s| float(s)).parse(input)?;
+        tuple((
+            string,
+            delimited(ws, char('='), ws),
+            float,
+        ))(input)?;
 
     Ok((input, (name.to_string(), num)))
 }
 
-fn parse_var_number_unit(input: &str) -> IResult<&str, (String, f32, Unit)> {
+fn parse_var_number_unit(input: Span) -> IResult<Span, (String, f32, Unit)> {
     let (input, (name, _, (num, unit))) =
         (string, delimited(ws, char('='), ws), |s| {
             parse_number_unit(s)
@@ -105,9 +115,9 @@ mod tests {
 
     fn parse_tag_param(input: &str) -> Result<TagParam> {
         let (input, param) =
-            TagParam::parse(input).map_err(|e| anyhow!("{}", e))?;
+            TagParam::parse(Span::new(input)).map_err(|e| anyhow!("{}", e))?;
 
-        assert_eq!(input, "");
+        assert_eq!(*input.fragment(), "");
 
         Ok(param)
     }

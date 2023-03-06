@@ -7,6 +7,7 @@ use nom::{
     IResult,
 };
 use serde::Deserialize;
+use crate::models::Span;
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub enum Accidentals {
@@ -18,11 +19,11 @@ pub enum Accidentals {
 }
 
 impl Accidentals {
-    pub fn parse(input: &str) -> IResult<&str, Self> {
+    pub fn parse(input: Span) -> IResult<Span, Self> {
         let (input, accs) = opt(is_a("&#"))(input)?;
 
         if let Some(accs) = accs {
-            let res = match accs {
+            let res = match *accs.fragment() {
                 "#" => Accidentals::Sharp,
                 "&" => Accidentals::Flat,
                 "##" => Accidentals::DoubleSharp,
@@ -43,26 +44,26 @@ impl Accidentals {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
+    use anyhow::{anyhow, Result};
 
     use super::*;
 
+    fn parse_accidental(input: &str) -> Result<Accidentals> {
+        let (input, parsed) =
+            Accidentals::parse(Span::new(input)).map_err(|e| anyhow!("{}", e))?;
+
+        assert_eq!(*input.fragment(), "");
+
+        Ok(parsed)
+    }
+
     #[test]
     fn parse_accidentals() -> Result<()> {
-        let (_, acc) = Accidentals::parse("")?;
-        assert_eq!(acc, Accidentals::Natural);
-
-        let (_, acc) = Accidentals::parse("#")?;
-        assert_eq!(acc, Accidentals::Sharp);
-
-        let (_, acc) = Accidentals::parse("&")?;
-        assert_eq!(acc, Accidentals::Flat);
-
-        let (_, acc) = Accidentals::parse("##")?;
-        assert_eq!(acc, Accidentals::DoubleSharp);
-
-        let (_, acc) = Accidentals::parse("&&")?;
-        assert_eq!(acc, Accidentals::DoubleFlat);
+        assert_eq!(parse_accidental("")?, Accidentals::Natural);
+        assert_eq!(parse_accidental("#")?, Accidentals::Sharp);
+        assert_eq!(parse_accidental("&")?, Accidentals::Flat);
+        assert_eq!(parse_accidental("##")?, Accidentals::DoubleSharp);
+        assert_eq!(parse_accidental("&&")?, Accidentals::DoubleFlat);
 
         Ok(())
     }

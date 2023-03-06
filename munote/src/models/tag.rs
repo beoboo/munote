@@ -16,6 +16,7 @@ use crate::{
     tag_param::TagParam,
 };
 use crate::event::parse_delimited_events;
+use crate::models::Span;
 
 #[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
 #[serde(rename_all="camelCase")]
@@ -71,7 +72,7 @@ impl Tag {
         self
     }
 
-    pub fn parse(input: &str, mut context: ContextPtr) -> IResult<&str, Self> {
+    pub fn parse(input: Span, mut context: ContextPtr) -> IResult<Span, Self> {
         // println!("\n\n\nParsing \"{input}\"\n\n");
         let (input, maybe_id) =
             alt((terminated(preceded(char('\\'), alpha1), ws), tag("|"))
@@ -88,6 +89,9 @@ impl Tag {
             |s| parse_delimited_events(s, context.clone(), '(', ')'),
         )(input)?;
 
+        let maybe_id = maybe_id.fragment();
+
+        // TODO: revisit this, its awful like this
         let (ty, maybe_id) = if maybe_id.ends_with("Begin") {
             if TagId::from_str(maybe_id).is_ok() {
                 (TagType::Position, maybe_id.to_string())
@@ -151,7 +155,7 @@ impl Tag {
     }
 }
 
-fn parse_params(input: &str) -> IResult<&str, Vec<TagParam>> {
+fn parse_params(input: Span) -> IResult<Span, Vec<TagParam>> {
     // println!("Parsing params: {input}");
     let (input, first) = TagParam::parse(input)?;
     // println!("First: {first:?} {input}");
@@ -181,12 +185,12 @@ mod tests {
     fn parse_tag(input: &str) -> Result<Tag> {
         let context = ContextPtr::default();
 
-        let (input, tag) =
-            Tag::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+        let (input, parsed) =
+            Tag::parse(Span::new(input), context).map_err(|e| anyhow!("{}", e))?;
 
-        assert_eq!(input, "");
+        assert_eq!(*input.fragment(), "");
 
-        Ok(tag)
+        Ok(parsed)
     }
 
     #[test]

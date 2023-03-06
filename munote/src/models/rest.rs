@@ -10,6 +10,7 @@ use crate::{
     models::ws,
     event::Event,
 };
+use crate::models::Span;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Rest {
@@ -33,7 +34,7 @@ impl Rest {
         Self { duration, dots }
     }
 
-    pub fn parse(input: &str, context: ContextPtr) -> IResult<&str, Self> {
+    pub fn parse(input: Span, context: ContextPtr) -> IResult<Span, Self> {
         let (input, _) = tag("_")(input)?;
         let (input, maybe_duration) = opt(Duration::parse)(input)?;
         let (input, dots) = Dots::parse(input)?;
@@ -61,12 +62,12 @@ mod tests {
     fn parse_rest(input: &str) -> Result<Rest> {
         let context = ContextPtr::default();
 
-        let (input, rest) =
-            Rest::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+        let (input, parsed) =
+            Rest::parse(Span::new(input), context).map_err(|e| anyhow!("{}", e))?;
 
-        assert_eq!(input, "");
+        assert_eq!(*input.fragment(), "");
 
-        Ok(rest)
+        Ok(parsed)
     }
 
     #[test]
@@ -102,7 +103,7 @@ mod tests {
             ..Default::default()
         });
 
-        let (_, rest) = Rest::parse("_", context)?;
+        let (_, rest) = Rest::parse(Span::new("_"), context)?;
 
         assert_eq!(rest.duration, duration);
         Ok(())

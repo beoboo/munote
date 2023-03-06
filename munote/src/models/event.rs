@@ -17,6 +17,7 @@ use crate::{
     rest::Rest,
     tag::Tag,
 };
+use crate::models::Span;
 
 pub trait Event {
     fn as_any(&self) -> &dyn Any;
@@ -79,12 +80,12 @@ impl<'a, 'b> PartialEq<dyn Event + 'b> for dyn Event + 'a {
 }
 
 pub fn parse_delimited_events(
-    input: &str,
+    input: Span,
     context: ContextPtr,
     start_delimiter: char,
     end_delimiter: char,
 )
-    -> IResult<&str, Vec<Box<dyn Event>>> {
+    -> IResult<Span, Vec<Box<dyn Event>>> {
 
     let (input, events) = delimited(
         terminated(char(start_delimiter), ws),
@@ -98,9 +99,9 @@ pub fn parse_delimited_events(
 }
 
 fn parse_events(
-    input: &str,
+    input: Span,
     context: ContextPtr,
-) -> IResult<&str, Vec<Box<dyn Event>>> {
+) -> IResult<Span, Vec<Box<dyn Event>>> {
     // println!("Checking symbols: \"{input}\"");
     let (input, first) = parse_event(input, context.clone())?;
 
@@ -117,9 +118,9 @@ fn parse_events(
 }
 
 fn parse_event(
-    input: &str,
+    input: Span,
     context: ContextPtr,
-) -> IResult<&str, Box<dyn Event>> {
+) -> IResult<Span, Box<dyn Event>> {
     // println!("Checking symbol: \"{input}\"");
     let (_, next) = peek(one_of("abcdefghilmrst{_|\\"))(input)?;
 

@@ -9,6 +9,7 @@ use crate::{
     impl_symbol_for,
 };
 use crate::event::parse_delimited_events;
+use crate::models::Span;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Chord {
@@ -23,7 +24,7 @@ impl Chord {
         Self { symbols, duration }
     }
 
-    pub fn parse(input: &str, context: ContextPtr) -> IResult<&str, Self> {
+    pub fn parse(input: Span, context: ContextPtr) -> IResult<Span, Self> {
         let (input, symbols) = parse_delimited_events(input, context.clone(), '{', '}')?;
 
         let ctx = context.borrow();
@@ -48,12 +49,12 @@ mod tests {
     fn parse_chord(input: &str) -> Result<Chord> {
         let context = ContextPtr::default();
 
-        let (input, chord) =
-            Chord::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+        let (input, parsed) =
+            Chord::parse(Span::new(input), context).map_err(|e| anyhow!("{}", e))?;
 
-        assert_eq!(input, "");
+        assert_eq!(*input.fragment(), "");
 
-        Ok(chord)
+        Ok(parsed)
     }
 
     #[test]

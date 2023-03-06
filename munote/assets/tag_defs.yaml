@@ -456,6 +456,7 @@ segno:
 
 tremolo:
   type: "range"
+  alternatives: ["trem"]
   params:
     - { name: style, type: "string", default: "///", optional: true }
     - { name: speed, type: "integer", default: 32, optional: true }

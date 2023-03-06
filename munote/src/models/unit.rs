@@ -1,6 +1,7 @@
 use nom::{branch::alt, bytes::complete::tag, combinator::value, IResult};
 use parse_display::Display;
 use strum::EnumIter;
+use crate::models::Span;
 
 #[derive(Clone, Copy, Debug, PartialEq, Display, EnumIter)]
 #[display(style = "camelCase")]
@@ -15,7 +16,7 @@ pub enum Unit {
 }
 
 impl Unit {
-    pub fn parse(input: &str) -> IResult<&str, Self> {
+    pub fn parse(input: Span) -> IResult<Span, Self> {
         alt((
             value(Unit::Mm, tag("mm")),
             value(Unit::M, tag("m")),
