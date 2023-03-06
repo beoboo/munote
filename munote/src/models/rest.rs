@@ -2,7 +2,12 @@ use std::any::Any;
 
 use nom::{bytes::complete::tag, combinator::opt, IResult};
 
-use crate::{context::ContextPtr, dots::Dots, duration::Duration, symbol::Symbol};
+use crate::{
+    context::ContextPtr,
+    dots::Dots,
+    duration::Duration,
+    symbol::Symbol,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Rest {
@@ -25,19 +30,14 @@ impl Symbol for Rest {
     }
 
     fn equals(&self, other: &dyn Symbol) -> bool {
-        other.as_any().downcast_ref::<Self>().map_or(false, |a| self == a)
+        other
+            .as_any()
+            .downcast_ref::<Self>()
+            .map_or(false, |a| self == a)
     }
 
     fn clone_box(&self) -> Box<dyn Symbol> {
         Box::new((*self).clone())
-    }
-
-    fn octave(&self) -> i8 {
-        1
-    }
-
-    fn duration(&self) -> Duration {
-        self.duration
     }
 }
 
@@ -53,7 +53,10 @@ impl Rest {
 
         Ok((
             input,
-            Rest::new(maybe_duration.unwrap_or(context.borrow().duration), dots),
+            Rest::new(
+                maybe_duration.unwrap_or(context.borrow().duration),
+                dots,
+            ),
         ))
     }
 }
@@ -68,7 +71,8 @@ mod tests {
     fn parse_rest(input: &str) -> Result<Rest> {
         let context = ContextPtr::default();
 
-        let (input, rest) = Rest::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+        let (input, rest) =
+            Rest::parse(input, context).map_err(|e| anyhow!("{}", e))?;
 
         assert!(input.is_empty());
 

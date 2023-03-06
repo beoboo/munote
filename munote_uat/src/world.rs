@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use cucumber::*;
 use munote::score::Score;
+use std::collections::HashMap;
 
 #[derive(Debug, Default, World)]
 pub struct MusicWorld {

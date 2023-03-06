@@ -1,4 +1,11 @@
-use nom::{bytes::complete::is_a, combinator::opt, error::ErrorKind, error_position, Err, IResult};
+use nom::{
+    bytes::complete::is_a,
+    combinator::opt,
+    error::ErrorKind,
+    error_position,
+    Err,
+    IResult,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Accidentals {
@@ -19,7 +26,12 @@ impl Accidentals {
                 "&" => Accidentals::Flat,
                 "##" => Accidentals::DoubleSharp,
                 "&&" => Accidentals::DoubleFlat,
-                _ => return Err(Err::Error(error_position!(input, ErrorKind::IsNot))),
+                _ => {
+                    return Err(Err::Error(error_position!(
+                        input,
+                        ErrorKind::IsNot
+                    )))
+                },
             };
             Ok((input, res))
         } else {

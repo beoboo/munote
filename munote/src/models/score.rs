@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use anyhow::{anyhow, Result};
 use nom::{
     character::complete::{char, one_of},
@@ -7,11 +6,14 @@ use nom::{
     sequence::{delimited, preceded},
     IResult,
 };
+use std::collections::HashMap;
 
-use crate::models::comma;
-use crate::voice::Voice;
-use crate::{context::ContextPtr, models::ws};
-use crate::comment::all_comments;
+use crate::{
+    comment::all_comments,
+    context::ContextPtr,
+    models::{comma, ws},
+    voice::Voice,
+};
 
 #[derive(Debug)]
 pub struct Score {
@@ -45,10 +47,7 @@ impl Score {
             staff.add_voice(voice);
         }
 
-        Self {
-            staffs
-        }
-
+        Self { staffs }
     }
 
     pub fn parse(input: &str, context: ContextPtr) -> Result<Self> {
@@ -84,7 +83,8 @@ impl Score {
 fn parse_voices(input: &str, context: ContextPtr) -> IResult<&str, Vec<Voice>> {
     let (input, first) = Voice::parse(input, context.clone())?;
 
-    let (input, mut voices) = many0(preceded(comma, |i| Voice::parse(i, context.clone())))(input)?;
+    let (input, mut voices) =
+        many0(preceded(comma, |i| Voice::parse(i, context.clone())))(input)?;
 
     voices.insert(0, first);
 
@@ -100,7 +100,8 @@ mod tests {
     fn parse_score(input: &str) -> Result<Score> {
         let context = ContextPtr::default();
 
-        let score = Score::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+        let score =
+            Score::parse(input, context).map_err(|e| anyhow!("{}", e))?;
 
         Ok(score)
     }
@@ -118,11 +119,13 @@ mod tests {
 
     #[test]
     fn parse_multiple_voices() -> Result<()> {
-        let score = parse_score("\
+        let score = parse_score(
+            "\
 {
   [ a1 ],
   [ b1 ]
-}")?;
+}",
+        )?;
 
         assert_eq!(score.staffs.len(), 1);
 
@@ -135,12 +138,14 @@ mod tests {
 
     #[test]
     fn skip_comments() -> Result<()> {
-        let score = parse_score("\
+        let score = parse_score(
+            "\
 (* this is a comment *)
 {
   [ a1 ],% and this too
   [ b1 ]
-}")?;
+}",
+        )?;
 
         assert_eq!(score.staffs.len(), 1);
 

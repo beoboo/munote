@@ -27,19 +27,14 @@ impl Symbol for Chord {
     }
 
     fn equals(&self, other: &dyn Symbol) -> bool {
-        other.as_any().downcast_ref::<Self>().map_or(false, |a| self == a)
+        other
+            .as_any()
+            .downcast_ref::<Self>()
+            .map_or(false, |a| self == a)
     }
 
     fn clone_box(&self) -> Box<dyn Symbol> {
         Box::new((*self).clone())
-    }
-
-    fn octave(&self) -> i8 {
-        1
-    }
-
-    fn duration(&self) -> Duration {
-        self.duration
     }
 }
 
@@ -64,7 +59,8 @@ impl Chord {
 fn parse_notes(input: &str, context: ContextPtr) -> IResult<&str, Vec<Note>> {
     let (input, first) = Note::parse(input, context.clone())?;
 
-    let (input, mut notes) = many0(preceded(comma, |i| Note::parse(i, context.clone())))(input)?;
+    let (input, mut notes) =
+        many0(preceded(comma, |i| Note::parse(i, context.clone())))(input)?;
 
     notes.insert(0, first);
 
@@ -82,7 +78,8 @@ mod tests {
     fn parse_chord(input: &str) -> Result<Chord> {
         let context = ContextPtr::default();
 
-        let (input, chord) = Chord::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+        let (input, chord) =
+            Chord::parse(input, context).map_err(|e| anyhow!("{}", e))?;
 
         assert!(input.is_empty());
 

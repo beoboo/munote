@@ -10,7 +10,13 @@ use nom::{
 };
 use parse_display::FromStr;
 
-use crate::{accidentals::Accidentals, context::ContextPtr, dots::Dots, duration::Duration, symbol::Symbol};
+use crate::{
+    accidentals::Accidentals,
+    context::ContextPtr,
+    dots::Dots,
+    duration::Duration,
+    symbol::Symbol,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Note {
@@ -39,7 +45,13 @@ impl Note {
     }
 
     pub fn from_name(name: impl Into<NoteName>) -> Self {
-        Self::new(name, Accidentals::Natural, 1, Duration::default(), Dots::None)
+        Self::new(
+            name,
+            Accidentals::Natural,
+            1,
+            Duration::default(),
+            Dots::None,
+        )
     }
 
     pub fn with_duration(mut self, num: u8, denom: u8) -> Self {
@@ -49,6 +61,11 @@ impl Note {
 
     pub fn with_octave(mut self, octave: i8) -> Self {
         self.octave = octave;
+        self
+    }
+
+    pub fn with_accidentals(mut self, accidentals: Accidentals) -> Self {
+        self.accidentals = accidentals;
         self
     }
 
@@ -82,19 +99,14 @@ impl Symbol for Note {
     }
 
     fn equals(&self, other: &dyn Symbol) -> bool {
-        other.as_any().downcast_ref::<Self>().map_or(false, |a| self == a)
+        other
+            .as_any()
+            .downcast_ref::<Self>()
+            .map_or(false, |a| self == a)
     }
 
     fn clone_box(&self) -> Box<dyn Symbol> {
         Box::new((*self).clone())
-    }
-
-    fn octave(&self) -> i8 {
-        self.octave
-    }
-
-    fn duration(&self) -> Duration {
-        self.duration
     }
 }
 
@@ -204,7 +216,8 @@ mod tests {
     fn parse_note(input: &str) -> Result<Note> {
         let context = ContextPtr::default();
 
-        let (input, note) = Note::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+        let (input, note) =
+            Note::parse(input, context).map_err(|e| anyhow!("{}", e))?;
 
         assert!(input.is_empty());
 

@@ -1,11 +1,8 @@
 use std::string::String;
 
 use anyhow::Result;
-use cucumber::{given, then, when};
-use cucumber::codegen::anyhow;
-use cucumber::gherkin::Step;
-use munote::context::ContextPtr;
-use munote::score::Score;
+use cucumber::{codegen::anyhow, gherkin::Step, given, then, when};
+use munote::{context::ContextPtr, score::Score};
 
 use crate::MusicWorld;
 

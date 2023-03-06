@@ -1,8 +1,11 @@
 use nom::{character::complete::char, sequence::delimited, IResult};
 
-use crate::symbol::parse_symbols;
-use crate::{context::ContextPtr, models::ws, symbol::Symbol};
-use crate::tag::{Tag, TagId};
+use crate::{
+    context::ContextPtr,
+    models::ws,
+    symbol::{parse_symbols, Symbol},
+    tag::{Tag, TagId},
+};
 
 #[derive(Debug)]
 pub struct Voice {
@@ -33,14 +36,19 @@ impl Voice {
 mod tests {
     use anyhow::{anyhow, Result};
 
-    use crate::{chord::Chord, note::Diatonic, note::Note, rest::Rest};
+    use crate::{
+        chord::Chord,
+        note::{Diatonic, Note},
+        rest::Rest,
+    };
 
     use super::*;
 
     fn parse_voice(input: &str) -> Result<Voice> {
         let context = ContextPtr::default();
 
-        let (input, voice) = Voice::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+        let (input, voice) =
+            Voice::parse(input, context).map_err(|e| anyhow!("{}", e))?;
 
         assert!(input.is_empty());
 

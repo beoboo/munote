@@ -1,9 +1,13 @@
-use std::cell::{Ref, RefCell, RefMut};
-use std::collections::HashMap;
+use std::{
+    cell::{Ref, RefCell, RefMut},
+    collections::HashMap,
+};
 
-use crate::duration::Duration;
+use crate::{
+    duration::Duration,
+    tag::{Tag, TagId},
+};
 use std::rc::Rc;
-use crate::tag::{Tag, TagId};
 
 pub struct Ptr<T> {
     inner: Rc<RefCell<T>>,
@@ -63,7 +67,7 @@ impl Default for Context {
 
 impl Context {
     pub fn add_tag(&mut self, tag: Tag) {
-        self.tags.insert(tag.id,tag);
+        self.tags.insert(tag.id, tag);
     }
 
     pub fn get_tag(&self, id: TagId) -> Option<&Tag> {
@@ -75,8 +79,8 @@ pub type ContextPtr = Ptr<Context>;
 
 #[cfg(test)]
 mod tests {
-    use crate::tag::TagId;
     use super::*;
+    use crate::tag::TagId;
 
     #[test]
     fn add_tag() {
