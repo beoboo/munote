@@ -1,6 +1,4 @@
-use std::{convert::From, str::FromStr};
-
-use nom::{bytes::complete::tag, IResult, Parser};
+use nom::{bytes::complete::tag, IResult};
 
 use crate::{dots::Dots, duration::Duration};
 

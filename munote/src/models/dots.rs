@@ -1,14 +1,4 @@
-use std::{convert::From, str::FromStr};
-
-use nom::{
-    branch::alt,
-    bytes::complete::{is_a, tag, take_while_m_n},
-    character::complete::{char as ch, i8, one_of, u8},
-    combinator::{map, map_res, opt, value},
-    IResult,
-    Parser,
-};
-use parse_display::FromStr;
+use nom::{bytes::complete::take_while_m_n, IResult, Parser};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Dots {

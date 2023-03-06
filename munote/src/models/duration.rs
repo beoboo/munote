@@ -1,14 +1,9 @@
-use std::{convert::From, str::FromStr};
-
 use nom::{
-    branch::alt,
-    bytes::complete::{is_a, tag, take_while_m_n},
-    character::complete::{char as ch, i8, one_of, u8},
-    combinator::{map, map_res, opt, value},
+    bytes::complete::tag,
+    character::complete::{char as ch, u8},
+    combinator::opt,
     IResult,
-    Parser,
 };
-use parse_display::FromStr;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Duration {

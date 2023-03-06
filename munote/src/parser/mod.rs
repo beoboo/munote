@@ -10,7 +10,7 @@ use crate::{
 pub struct NoteParser;
 
 impl NoteParser {
-    pub fn parse_note(&self, input: impl Into<String>) -> Result<Note> {
+    pub fn parse_note(&self, _input: impl Into<String>) -> Result<Note> {
         Ok(Note::new(
             Diatonic::A,
             Accidentals::Natural,
