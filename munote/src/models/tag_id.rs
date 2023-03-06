@@ -68,7 +68,8 @@ pub enum TagId {
     Space,
     Special,
 
-    // NotesCluster,
+    // Notes
+    Cluster,
     Cue,
     DisplayDuration,
     DotFormat,
@@ -96,7 +97,7 @@ pub enum TagId {
     Trill,
     Turn,
 
-    //Repeat Signs
+    // Repeat Signs
     Coda,
     DaCapo,
     DaCapoAlFine,

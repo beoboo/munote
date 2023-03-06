@@ -1,13 +1,14 @@
 use std::collections::HashMap;
+use std::str::FromStr;
 
-use anyhow::Result;
+use anyhow::{anyhow, bail, Result};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 
 use crate::tag::TagType;
 use crate::tag_id::TagId;
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum TagParamType {
     Boolean,
@@ -18,7 +19,7 @@ pub enum TagParamType {
     Unit,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct TagParamDefinition {
     pub name: String,
     #[serde(rename = "type")]
@@ -27,7 +28,7 @@ pub struct TagParamDefinition {
     pub optional: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct TagDefinition {
     #[serde(rename = "type")]
     pub ty: TagType,
@@ -37,9 +38,9 @@ pub struct TagDefinition {
     pub params: Vec<TagParamDefinition>,
 }
 
-// #[derive(Deserialize)]
 pub struct TagDefinitions {
     defs: &'static HashMap<TagId, TagDefinition>,
+    lookup: &'static HashMap<String, TagId>,
 }
 
 impl Default for TagDefinitions {
@@ -47,10 +48,13 @@ impl Default for TagDefinitions {
         lazy_static! {
             static ref TAG_DEFS: HashMap<TagId, TagDefinition> = load_defs(include_str!("../../assets/tag_defs.yaml"))
                 .expect("Could not load definitions");
+            static ref TAG_LOOKUP: HashMap<String, TagId> = build_lookup(&TAG_DEFS)
+                .expect("Could not load definitions");
         }
 
         Self {
-            defs: &TAG_DEFS
+            defs: &TAG_DEFS,
+            lookup: &TAG_LOOKUP,
         }
     }
 }
@@ -59,28 +63,35 @@ impl TagDefinitions {
     pub fn get(&self, id: TagId) -> Option<&TagDefinition> {
         self.defs.get(&id)
     }
+
+    pub fn lookup(&self, name: &str) -> Result<TagId> {
+        if let Some(alt) = self.lookup.get(name) {
+            return Ok(*alt);
+        }
+
+        TagId::from_str(name)
+            .map_err(|_| anyhow!("Tag ID {name} not found"))
+    }
 }
 
 fn load_defs(input: &str) -> Result<HashMap<TagId, TagDefinition>> {
-    println!("Loading: {input}");
     let defs = serde_yaml::from_str(input)?;
-    // let data = YamlLoader::load_from_str(data)?;
-    // let data = data[0]["defs"].as_vec().unwrap();
-    // println!("{:?}", data);
-    // for item in data {
-    //     if let Yaml::Hash(h) = item {
-    //         for (name, v) in h {
-    //             println!("\n{name:?}");
-    //
-    //             for ()
-    //             println!("\n{v:?}");
-    //         }
-    //     }
-    //     // let name = h.as_str();
-    //     // println!("{name:?}");
-    // }
-
-    // let defs = HashMap::default();;
 
     Ok(defs)
+}
+
+fn build_lookup(defs: &HashMap<TagId, TagDefinition>) -> Result<HashMap<String, TagId>> {
+    let mut lookup = HashMap::new();
+
+    for (id, def) in defs {
+        for alt in &def.alternatives {
+            if lookup.contains_key(alt) {
+                bail!("Alternative {alt} already defined");
+            }
+
+            lookup.insert(alt.clone(), *id);
+        }
+    }
+
+    Ok(lookup)
 }

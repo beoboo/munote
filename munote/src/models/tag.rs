@@ -97,8 +97,13 @@ impl Tag {
             (TagType::Position, maybe_id.to_string())
         };
 
-        let id = TagId::lookup(&maybe_id)
-            .map_err(|_| Err::Error(error_position!(input, ErrorKind::Fail)))?;
+        let ctx = context.borrow();
+
+        let id = ctx.lookup_tag(&maybe_id)
+            .map_err(|e| {
+                println!("{e:?}");
+                Err::Error(error_position!(input, ErrorKind::Fail))
+            })?;
 
         // println!("\n\nParsing \"{input}\" for {id:?} {ty:?}
         //   params: {maybe_params:?}
@@ -112,7 +117,8 @@ impl Tag {
             maybe_events.unwrap_or_default(),
         );
 
-        if !context.borrow().validate(&tag) {
+        if !ctx.validate(&tag) {
+            println!("Could not validate {tag:?}");
             return Err(Err::Error(error_position!(input, ErrorKind::Fail)));
         }
 
@@ -309,8 +315,8 @@ mod tests {
 
     #[test]
     fn lookup_variants() -> Result<()> {
-        assert_tag_id(parse_tag("\\acc")?, TagId::Accidental);
         assert_tag_id(parse_tag("|")?, TagId::Bar);
+        assert_tag_id(parse_tag("\\acc(a)")?, TagId::Accidental);
 
         Ok(())
     }

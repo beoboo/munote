@@ -1,4 +1,4 @@
-use crate::tag::Tag;
+use crate::tag::{Tag, TagType};
 use crate::tag_definitions::TagDefinitions;
 
 #[derive(Default)]
@@ -6,10 +6,16 @@ pub struct TagValidator;
 
 impl TagValidator {
     pub fn validate(&self, tag: &Tag, defs: &TagDefinitions) -> bool {
+        println!("\n\nValidating {tag:?}");
         let def = defs.get(tag.id)
             .expect(&format!("Undefined tag ID: {:?}", tag.id));
 
-        tag.ty == def.ty
+        println!("\n{def:?}");
+
+        match tag.ty {
+            TagType::Position => matches!(def.ty, TagType::Position | TagType::Any),
+            _ => def.ty != TagType::Position,
+        }
     }
 }
 

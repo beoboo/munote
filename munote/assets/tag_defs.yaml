@@ -2,7 +2,7 @@
 # Accidentals
 accidental:
   type: "range"
-  alternatives: ["acc"]
+  alternatives: [ "acc" ]
   params:
     - { name: style, type: "string", default: "", optional: true }
 
@@ -15,7 +15,7 @@ alter:
 # Articulations
 accent:
   type: "range"
-  alternatives: ["acc"]
+#  alternatives: [ "acc" ]
   params:
     - { name: position, type: "string", default: "", optional: true }
 
@@ -57,14 +57,14 @@ pedalOff:
 
 pizzicato:
   type: "any"
-  alternatives: ["pizz"]
+  alternatives: [ "pizz" ]
   params:
     - { name: type, type: "string", default: "lefthand", optional: false }
     - { name: position, type: "string", default: "above", optional: true }
 
 slur:
   type: "range"
-  alternatives: ["sl"]
+  alternatives: [ "sl" ]
   params:
     - { name: curve, type: "string", default: "", optional: true }
     - { name: dx1, type: "unit", default: 2hs, optional: true }
@@ -76,24 +76,23 @@ slur:
 
 staccato:
   type: "any"
-  alternatives: ["stacc"]
+  alternatives: [ "stacc" ]
   params:
     - { name: type, type: "string", default: "regular", optional: false }
     - { name: position, type: "string", default: "", optional: true }
 
 tenuto:
   type: "any"
-  alternatives: ["stacc"]
+  alternatives: [ "ten" ]
   params:
     - { name: type, type: "string", default: "regular", optional: false }
     - { name: position, type: "string", default: "", optional: true }
-
 
 #########################
 # Barlines
 bar:
   type: "position"
-  alternatives: ["|"]
+  alternatives: [ "|" ]
   params:
     - { name: displayMeasNum, type: "boolean", default: false, optional: true }
     - { name: hidden, type: "boolean", default: false, optional: true }
@@ -117,7 +116,7 @@ endBar:
 # Beaming
 beam:
   type: "range"
-  alternatives: ["bm", "b"]
+  alternatives: [ "bm", "b" ]
   params:
     - { name: dy1, type: "unit", default: 0, optional: true }
     - { name: dy2, type: "unit", default: 0, optional: true }
@@ -164,7 +163,7 @@ meter:
 # Dynamics
 crescendo:
   type: "range"
-  alternatives: ["cresc"]
+  alternatives: [ "cresc" ]
   params:
     - { name: dx1, type: "unit", default: 0, optional: true }
     - { name: dy1, type: "unit", default: 0, optional: true }
@@ -174,7 +173,7 @@ crescendo:
 
 decrescendo:
   type: "range"
-  alternatives: ["decresc", "diminuendo", "dim"]
+  alternatives: [ "decresc", "diminuendo", "dim" ]
   params:
     - { name: dx1, type: "unit", default: 0, optional: true }
     - { name: dy1, type: "unit", default: 0, optional: true }
@@ -184,7 +183,7 @@ decrescendo:
 
 intensity:
   type: "position"
-  alternatives: ["intens", "i"]
+  alternatives: [ "intens", "i" ]
   params:
     - { name: type, type: "string", default: "", optional: false }
     - { name: before, type: "string", default: "", optional: true }
@@ -195,7 +194,7 @@ intensity:
 # Layout
 accolade:
   type: "position"
-  alternatives: ["accol"]
+  alternatives: [ "accol" ]
   params:
     - { name: id, type: "integer", default: 0, optional: false }
     - { name: range, type: "string", default: "", optional: false }
@@ -207,12 +206,11 @@ newPage:
 
 newLine:
   type: "position"
-  alternatives: ["newSystem"]
+  alternatives: [ "newSystem" ]
 
 pageFormat:
   type: "position"
-  alternatives: ["accol"]
-  validator: "page_format_validator"
+  validator: "pageFormatValidator"
   params:
     - { name: type, type: "string", default: "", optional: false }
     - { name: w, type: "unit", default: "", optional: false }
@@ -247,7 +245,7 @@ systemFormat:
 # Miscellaneous
 auto:
   type: "position"
-  alternatives: ["set"]
+  alternatives: [ "set" ]
   params:
     - { name: autoEndBar, type: "boolean", default: on, optional: true }
     - { name: endBar, type: "boolean", default: on, optional: true }
@@ -277,23 +275,205 @@ space:
 special:
   type: "position"
   params:
-    - { name: char, type: "string", default: "", optional: false, validator: "special_char_validator" }
-
+    - { name: char, type: "string", default: "", optional: false, validator: "specialChar" }
 
 #########################
 # Notes
+cluster:
+  type: "position"
+  params:
+    - { name: hdx, type: "unit", default: 0hs, optional: true }
+    - { name: hdy, type: "unit", default: 0hs, optional: true }
+
+cue:
+  type: "range"
+  params:
+    - { name: name, type: "string", default: "", optional: true }
+
+displayDuration:
+  type: "any"
+  alternatives: [ "dispDur" ]
+  params:
+    - { name: n, type: "integer", default: 0, optional: false }
+    - { name: d, type: "integer", default: 0, optional: false }
+    - { name: ndots, type: "integer", default: 0, optional: true }
+
+dotFormat:
+  type: "any"
+  params:
+    - { name: n, type: "integer", default: 0, optional: false }
+    - { name: d, type: "integer", default: 0, optional: false }
+    - { name: ndots, type: "integer", default: 0, optional: true }
+
+grace:
+  type: "range"
+
+harmonic:
+  type: "range"
+
+mrest:
+  type: "range"
+  params:
+    - { name: count, type: "integer", default: "", optional: false }
+
+noteFormat:
+  type: "any"
+  params:
+    - { name: style, type: "string", default: "standard", optional: false, validator: "noteFormatStyle" }
+
+octava:
+  type: "any"
+  alternatives: [ "oct" ]
+  params:
+    - { name: i, type: "integer", default: 0, optional: false }
+    - { name: hidden, type: "boolean", default: false, optional: true }
+
+restFormat:
+  type: "any"
+
+headsCenter:
+  type: "any"
+
+headsLeft:
+  type: "any"
+
+headsRight:
+  type: "any"
+
+headsNormal:
+  type: "any"
+
+headsReverse:
+  type: "any"
+
+stemsOff:
+  type: "position"
+
+stemsAuto:
+  type: "position"
+  params:
+    - { name: length, type: "unit", default: 7.0, optional: true }
+
+stemsDown:
+  type: "position"
+  params:
+    - { name: length, type: "unit", default: 7.0, optional: true }
+
+stemsUp:
+  type: "position"
+  params:
+    - { name: length, type: "unit", default: 7.0, optional: true }
+
+tie:
+  type: "range"
+
+tuplet:
+  type: "range"
+  params:
+    - { name: format, type: "string", default: "", optional: false, validator: "tupletFormat" }
+    - { name: position, type: "string", default: "above", optional: true }
+    - { name: dy1, type: "unit", default: 0, optional: true }
+    - { name: dy2, type: "unit", default: 0, optional: true }
+    - { name: lineThickness, type: "float", default: 4, optional: true }
+    - { name: bold, type: "boolean", default: false, optional: true }
+    - { name: textSize, type: "float", default: 1, optional: true, validator: "tupletTextSize" }
+    - { name: dispNote, type: "string", default: "", optional: true, validator: "tupletDispNote" }
 
 #########################
 # Ornaments
+arpeggio:
+  type: "range"
+  params:
+    - { name: direction, type: "string", default: "", optional: true }
+
+mordent:
+  type: "range"
+  alternatives: [ "mord" ]
+  params:
+    - { name: note, type: "string", default: "", optional: true, validator: "note" }
+    - { name: type, type: "string", default: "prall", optional: true, validator: "mordentType" }
+    - { name: detune, type: "float", default: 0, optional: true }
+    - { name: accidental, type: "string", default: "", optional: true }
+    - { name: adx, type: "unit", default: 0hs, optional: true }
+    - { name: ady, type: "unit", default: 0hs, optional: true }
+    - { name: position, type: "string", default: "above", optional: true, validator: "position" }
+
+trill:
+  type: "range"
+  params:
+    - { name: note, type: "string", default: "", optional: true, validator: "note" }
+    - { name: detune, type: "float", default: 0, optional: true }
+    - { name: accidental, type: "string", default: "", optional: true }
+    - { name: adx, type: "unit", default: 0hs, optional: true }
+    - { name: ady, type: "unit", default: 0hs, optional: true }
+    - { name: begin, type: "boolean", default: on, optional: true }
+    - { name: tr, type: "boolean", default: true, optional: true }
+    - { name: wavy, type: "boolean", default: true, optional: true }
+    - { name: position, type: "string", default: "above", optional: true, validator: "position" }
+
+turn:
+  type: "range"
+  params:
+    - { name: note, type: "string", default: "", optional: true, validator: "note" }
+    - { name: type, type: "string", default: "prall", optional: true, validator: "turnType" }
+    - { name: detune, type: "float", default: 0, optional: true }
+    - { name: accidental, type: "string", default: "", optional: true }
+    - { name: adx, type: "unit", default: 0hs, optional: true }
+    - { name: ady, type: "unit", default: 0hs, optional: true }
+    - { name: position, type: "string", default: "above", optional: true, validator: "position" }
 
 #########################
 # Repeat Signs
+coda:
+  type: "position"
+
+daCapo:
+  type: "position"
+
+daCapoAlFine:
+  type: "position"
+
+daCoda:
+  type: "position"
+
+dalSegno:
+  type: "position"
+
+dalSegnoAlFine:
+  type: "position"
+
+fine:
+  type: "position"
+
+repeatBegin:
+  type: "position"
+
+repeatEnd:
+  type: "position"
+
+segno:
+  type: "position"
+
+tremolo:
+  type: "range"
+  params:
+    - { name: style, type: "string", default: "///", optional: true }
+    - { name: speed, type: "integer", default: 32, optional: true }
+    - { name: pitch, type: "string", default: "", optional: true }
+    - { name: thickness, type: "unit", default: 0.75, optional: true }
+    - { name: text, type: "string", default: "", optional: true }
+
+volta:
+  type: "range"
+  params:
+    - { name: mark, type: "string", default: "", optional: false }
+    - { name: format, type: "string", default: "", optional: true, validator: "voltaFormat" }
 
 #########################
 # Tempo
 accelerando:
   type: "range"
-  alternatives: ["accel"]
+  alternatives: [ "accel" ]
   params:
     - { name: before, type: "string", default: "", optional: true }
     - { name: after, type: "string", default: "", optional: true }
@@ -301,7 +481,7 @@ accelerando:
 
 ritardando:
   type: "range"
-  alternatives: ["rit"]
+  alternatives: [ "rit" ]
   params:
     - { name: before, type: "string", default: "", optional: true }
     - { name: after, type: "string", default: "", optional: true }
@@ -310,9 +490,63 @@ ritardando:
 tempo:
   type: "position"
   params:
-    - { name: tempo, type: "string", default: "", optional: false, validator: "tempo_validator" }
+    - { name: tempo, type: "string", default: "", optional: false, validator: "tempoTempo" }
     - { name: bpm, type: "string", default: "", optional: true }
 
 #########################
 # Text
+composer:
+  type: "position"
+  params:
+    - { name: name, type: "string", default: "", optional: false }
+    - { name: pageformat, type: "string", default: "53", optional: true, validate: "pageFormat" }
 
+fingering:
+  type: "position"
+  alternatives: [ "fing" ]
+  params:
+    - { name: text, type: "string", default: "", optional: true }
+    - { name: position, type: "string", default: "", optional: true, validator: "position" }
+
+footer:
+  type: "position"
+  params:
+    - { name: text, type: "string", default: "", optional: false }
+    - { name: pageformat, type: "string", default: "c6", optional: true, validate: "pageFormat" }
+
+harmony:
+  type: "position"
+  params:
+    - { name: text, type: "string", default: "", optional: false }
+    - { name: position, type: "string", default: "", optional: true, validator: "position" }
+
+instrument:
+  type: "position"
+  alternatives: [ "instr" ]
+  params:
+    - { name: name, type: "string", default: "", optional: false }
+    - { name: transp, type: "string", default: "", optional: true }
+    - { name: autopos, type: "boolean", default: off, optional: true }
+
+lyrics:
+  type: "range"
+  params:
+    - { name: text, type: "string", default: "", optional: false }
+    - { name: autopos, type: "boolean", default: off, optional: true }
+
+mark:
+  type: "position"
+  params:
+    - { name: text, type: "string", default: "", optional: false }
+    - { name: enclosure, type: "string", default: "", optional: true }
+
+text:
+  type: "any"
+  params:
+    - { name: text, type: "string", default: "", optional: false }
+
+title:
+  type: "position"
+  params:
+    - { name: name, type: "string", default: "", optional: false }
+    - { name: pageformat, type: "string", default: "c2", optional: true, validate: "pageFormat", validate: "pageFormat" }

@@ -4,6 +4,7 @@ use std::{
     rc::Rc,
 };
 
+use anyhow::{anyhow, Result};
 use crate::{duration::Duration, tag::Tag, tag_id::TagId};
 use crate::range_tag::RangeTag;
 use crate::tag_definitions::{TagDefinition, TagDefinitions};
@@ -79,6 +80,10 @@ impl Context {
 
     pub fn get_tag(&self, id: TagId) -> Option<&RangeTag> {
         self.range_tags.get(&id)
+    }
+
+    pub fn lookup_tag(&self, name: &str) -> Result<TagId> {
+        self.defs.lookup(name)
     }
 
     pub fn validate(&self, tag: &Tag) -> bool {
