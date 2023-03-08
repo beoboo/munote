@@ -25,6 +25,8 @@ pub mod voice;
 pub mod error;
 pub mod tag_validator;
 pub mod tag_definitions;
+pub mod symbols;
+pub mod display_event;
 
 type Span<'a> = LocatedSpan<&'a str>;
 

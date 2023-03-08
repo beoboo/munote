@@ -4,7 +4,7 @@ use anyhow::Result;
 use clap::Parser;
 use colorize::AnsiColor;
 
-use munote::{context::ContextPtr, score::Score};
+use munote::score::Score;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -40,7 +40,7 @@ fn parse_score(index: &str, path: &Path) -> Result<Score> {
     println!("Parsing \"{}\" ({})... \n", display, index);
 
     let content = fs::read_to_string(path)?;
-    let score = Score::parse(&content, ContextPtr::default())?;
+    let score = Score::parse(&content)?;
 
     println!(
         "{}",

@@ -47,9 +47,9 @@ impl Default for TagDefinitions {
     fn default() -> Self {
         lazy_static! {
             static ref TAG_DEFS: HashMap<TagId, TagDefinition> = load_defs(include_str!("../../assets/tag_defs.yaml"))
-                .expect("Could not load definitions");
+                .expect("Could not load tag definitions");
             static ref TAG_LOOKUP: HashMap<String, TagId> = build_lookup(&TAG_DEFS)
-                .expect("Could not load definitions");
+                .expect("Could not create tag lookup");
         }
 
         Self {

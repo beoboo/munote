@@ -14,9 +14,9 @@ use crate::{
     context::ContextPtr,
     dots::Dots,
     duration::Duration,
+    event::Event,
     impl_symbol_for,
     models::ws,
-    event::Event,
 };
 use crate::models::Span;
 
@@ -73,6 +73,10 @@ impl Note {
         self
     }
 
+    pub fn diatonic_pitch(&self) -> i32 {
+        self.name.diatonic_pitch() + 7 * (self.octave - 1) as i32
+    }
+
     pub fn parse(input: Span, mut context: ContextPtr) -> IResult<Span, Self> {
         let (input, name) = alt((
             map(tag("empty"), |_| NoteName::Empty),
@@ -100,20 +104,53 @@ impl Note {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum NoteName {
+    Empty,
+    Diatonic(Diatonic),
+    Chromatic(Chromatic),
+    Solfege(Solfege),
+}
+
+impl NoteName {
+    pub fn diatonic_pitch(&self) -> i32 {
+        match self {
+            Self::Empty => 0,
+            Self::Diatonic(d) => d.diatonic_pitch(),
+            Self::Chromatic(c) => c.diatonic_pitch(),
+            Self::Solfege(s) => s.diatonic_pitch(),
+        }
+    }
+}
+
+
 #[derive(Debug, Clone, FromStr, PartialEq)]
 #[display(style = "lowercase")]
 pub enum Diatonic {
-    A,
-    B,
     C,
     D,
     E,
     F,
     G,
+    A,
+    B,
     H,
 }
 
 impl Diatonic {
+    pub fn diatonic_pitch(&self) -> i32 {
+        match self {
+            Self::C => -5,
+            Self::D => -4,
+            Self::E => -3,
+            Self::F => -2,
+            Self::G => -1,
+            Self::A => 0,
+            Self::B => 1,
+            Self::H => 1,
+        }
+    }
+
     pub fn parse(input: Span) -> IResult<Span, Self> {
         map_res(one_of("abcdefgh"), |d| Self::from_str(&d.to_string()))(input)
     }
@@ -136,6 +173,16 @@ pub enum Chromatic {
 }
 
 impl Chromatic {
+    pub fn diatonic_pitch(&self) -> i32 {
+        match self {
+            Self::Cis => -5,
+            Self::Dis => -4,
+            Self::Fis => -2,
+            Self::Gis => -1,
+            Self::Ais => 0,
+        }
+    }
+
     pub fn parse(input: Span) -> IResult<Span, Self> {
         alt((
             value(Chromatic::Cis, tag("cis")),
@@ -166,6 +213,19 @@ pub enum Solfege {
 }
 
 impl Solfege {
+    pub fn diatonic_pitch(&self) -> i32 {
+        match self {
+            Self::Do => -5,
+            Self::Re => -4,
+            Self::Me => -3,
+            Self::Fa => -2,
+            Self::Sol => -1,
+            Self::La => 0,
+            Self::Si => 1,
+            Self::Ti => 1,
+        }
+    }
+
     pub fn parse(input: Span) -> IResult<Span, Self> {
         alt((
             value(Solfege::Do, tag("do")),
@@ -184,14 +244,6 @@ impl From<Solfege> for NoteName {
     fn from(s: Solfege) -> Self {
         Self::Solfege(s)
     }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum NoteName {
-    Empty,
-    Diatonic(Diatonic),
-    Chromatic(Chromatic),
-    Solfege(Solfege),
 }
 
 #[cfg(test)]
@@ -300,6 +352,14 @@ mod tests {
 
         assert_eq!(note.duration, duration);
         Ok(())
+    }
+
+    #[test]
+    fn diatonic_pitch() {
+        assert_eq!(Note::from_name(Diatonic::C).diatonic_pitch(), -5);
+        assert_eq!(Note::from_name(Diatonic::A).with_octave(2).diatonic_pitch(), 7);
+        assert_eq!(Note::from_name(Diatonic::C).with_octave(2).diatonic_pitch(), 7 - 5);
+        assert_eq!(Note::from_name(Diatonic::C).with_octave(0).diatonic_pitch(), -7 - 5);
     }
 
     fn assert_note(note: &Note, name: impl Into<NoteName>, octave: i8) {

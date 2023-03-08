@@ -52,10 +52,13 @@ impl Score {
         Self { staffs }
     }
 
-    pub fn parse(input: &str, context: ContextPtr) -> Result<Self> {
+    pub fn parse(input: &str) -> Result<Self> {
         let input = all_comments(input)?;
 
-        let (_, score) = preceded(ws, |s| parse_internal(s, context.clone()))(Span::new(input.as_str()))
+        let (_, score) = preceded(
+            ws,
+            |s| parse_internal(s, ContextPtr::default()),
+        )(Span::new(input.as_str()))
             .map_err(|e| anyhow!("{e}"))?;
 
         Ok(score)
@@ -100,10 +103,8 @@ mod tests {
     use super::*;
 
     fn parse_score(input: &str) -> Result<Score> {
-        let context = ContextPtr::default();
-
         let score =
-            Score::parse(input, context).map_err(|e| anyhow!("{}", e))?;
+            Score::parse(input).map_err(|e| anyhow!("{}", e))?;
 
         Ok(score)
     }
