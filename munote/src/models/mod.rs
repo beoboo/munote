@@ -10,7 +10,6 @@ use nom_locate::LocatedSpan;
 pub mod accidentals;
 pub mod chord;
 pub mod comment;
-pub mod context;
 pub mod dots;
 pub mod duration;
 pub mod note;

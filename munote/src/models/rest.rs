@@ -1,14 +1,10 @@
-use std::any::Any;
-
 use nom::{bytes::complete::tag, combinator::opt, IResult};
 
 use crate::{
     context::ContextPtr,
     dots::Dots,
     duration::Duration,
-    impl_symbol_for,
     models::ws,
-    event::Event,
 };
 use crate::models::Span;
 
@@ -17,8 +13,6 @@ pub struct Rest {
     pub duration: Duration,
     pub dots: Dots,
 }
-
-impl_symbol_for!(Rest);
 
 impl Default for Rest {
     fn default() -> Self {
@@ -32,6 +26,10 @@ impl Default for Rest {
 impl Rest {
     pub fn new(duration: Duration, dots: Dots) -> Self {
         Self { duration, dots }
+    }
+
+    pub fn full_duration(&self) -> Duration {
+        self.duration * (1 + self.dots.duration())
     }
 
     pub fn parse(input: Span, context: ContextPtr) -> IResult<Span, Self> {
@@ -54,8 +52,10 @@ impl Rest {
 
 #[cfg(test)]
 mod tests {
-    use crate::context::{Context, Ptr};
     use anyhow::{anyhow, Result};
+
+    use crate::context::{Context};
+    use crate::ptr::Ptr;
 
     use super::*;
 

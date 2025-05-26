@@ -8,6 +8,7 @@ use crate::event::parse_delimited_events;
 use crate::models::Span;
 use crate::tag::Tag;
 use crate::tag_id::TagId;
+use crate::visitor::VisitorPtr;
 
 #[derive(Debug)]
 pub struct Voice {
@@ -19,6 +20,14 @@ pub struct Voice {
 impl Voice {
     pub fn new(staff: u8, events: Vec<Box<dyn Event>>) -> Self {
         Self { staff, events }
+    }
+
+    pub fn visit(&self, mut visitor: VisitorPtr) {
+        visitor.borrow_mut().on_voice(self);
+
+        for event in &self.events {
+            event.visit(visitor.clone());
+        }
     }
 
     pub fn parse<'a>(input: Span, context: ContextPtr) -> IResult<Span, Self> {

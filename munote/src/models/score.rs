@@ -16,6 +16,7 @@ use crate::{
     voice::Voice,
 };
 use crate::models::Span;
+use crate::visitor::VisitorPtr;
 
 #[derive(Debug)]
 pub struct Score {
@@ -50,6 +51,18 @@ impl Score {
         }
 
         Self { staffs }
+    }
+
+    pub fn visit(&self, mut visitor: VisitorPtr) {
+        for (_, staff) in &self.staffs {
+            visitor.borrow_mut().on_staff_begin();
+
+            for voice in &staff.voices {
+                voice.visit(visitor.clone())
+            }
+
+            visitor.borrow_mut().on_staff_end();
+        }
     }
 
     pub fn parse(input: &str) -> Result<Self> {

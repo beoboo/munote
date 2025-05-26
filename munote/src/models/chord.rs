@@ -1,12 +1,9 @@
-use std::any::Any;
-
 use nom::IResult;
 
 use crate::{
     context::ContextPtr,
     duration::Duration,
     event::Event,
-    impl_symbol_for,
 };
 use crate::event::parse_delimited_events;
 use crate::models::Span;
@@ -16,8 +13,6 @@ pub struct Chord {
     pub symbols: Vec<Box<dyn Event>>,
     pub duration: Duration,
 }
-
-impl_symbol_for!(Chord);
 
 impl Chord {
     pub fn new(symbols: Vec<Box<dyn Event>>, duration: Duration) -> Self {

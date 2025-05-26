@@ -18,6 +18,7 @@ use crate::{
     tag::Tag,
 };
 use crate::models::Span;
+use crate::visitor::VisitorPtr;
 
 pub trait Event {
     fn as_any(&self) -> &dyn Any;
@@ -29,11 +30,13 @@ pub trait Event {
     fn equals(&self, _: &dyn Event) -> bool;
 
     fn clone_box(&self) -> Box<dyn Event>;
+
+    fn visit(&self, visitor: VisitorPtr);
 }
 
 #[macro_export]
-macro_rules! impl_symbol_for {
-    ($t:ty) => {
+macro_rules! impl_event_for {
+    ($t:ty, $m:ident) => {
         impl Event for $t {
             fn as_any(&self) -> &dyn Any {
                 self
@@ -57,9 +60,18 @@ macro_rules! impl_symbol_for {
             fn clone_box(&self) -> Box<dyn Event> {
                 Box::new((*self).clone())
             }
+
+            fn visit(&self, mut visitor: VisitorPtr) {
+                visitor.borrow_mut().$m(self);
+            }
         }
     };
 }
+
+impl_event_for!(Chord, on_chord);
+impl_event_for!(Note, on_note);
+impl_event_for!(Rest, on_rest);
+impl_event_for!(Tag, on_tag);
 
 impl Clone for Box<dyn Event> {
     fn clone(&self) -> Self {
@@ -86,7 +98,6 @@ pub fn parse_delimited_events(
     end_delimiter: char,
 )
     -> IResult<Span, Vec<Box<dyn Event>>> {
-
     let (input, events) = delimited(
         terminated(char(start_delimiter), ws),
         |i| parse_events(i, context.clone()),

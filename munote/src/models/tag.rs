@@ -1,4 +1,3 @@
-use std::any::Any;
 use std::str::FromStr;
 
 use nom::{branch::alt, bytes::complete::tag, character::complete::{alpha1, char}, combinator::opt, error_position, IResult, multi::many0, sequence::{delimited, preceded, terminated}};
@@ -10,7 +9,6 @@ use serde::Deserialize;
 use crate::{
     context::ContextPtr,
     event::Event,
-    impl_symbol_for,
     models::ws,
     tag_id::TagId,
     tag_param::TagParam,
@@ -44,8 +42,6 @@ pub struct Tag {
     pub params: Vec<TagParam>,
     pub events: Vec<Box<dyn Event>>,
 }
-
-impl_symbol_for!(Tag);
 
 impl Tag {
     pub fn new(

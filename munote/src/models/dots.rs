@@ -1,7 +1,9 @@
 use nom::{bytes::complete::take_while_m_n, IResult, Parser};
+
+use crate::duration::Duration;
 use crate::models::Span;
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub enum Dots {
     #[default]
     None,
@@ -10,7 +12,26 @@ pub enum Dots {
     Triple,
 }
 
+impl From<Dots> for usize {
+    fn from(dots: Dots) -> Self {
+        match dots {
+            Dots::None => 0,
+            Dots::Single => 1,
+            Dots::Double => 2,
+            Dots::Triple => 3,
+        }
+    }
+}
+
 impl Dots {
+    pub fn duration(&self) -> Duration {
+        match self {
+            Self::None => Duration::new(0, 1),
+            Self::Single => Duration::new(1, 2),
+            Self::Double => Duration::new(3, 4),
+            Self::Triple => Duration::new(7, 8),
+        }
+    }
     pub fn parse(input: Span) -> IResult<Span, Self> {
         let (input, dots) = take_while_m_n(0, 3, |c| c == '.').parse(input)?;
 
@@ -27,8 +48,9 @@ impl Dots {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use anyhow::{anyhow, Result};
+
+    use super::*;
 
     fn parse_dots(input: &str) -> Result<Dots> {
         let (input, parsed) =
@@ -41,11 +63,17 @@ mod tests {
 
     #[test]
     fn parse_valid() -> Result<()> {
-        assert_eq!(parse_dots("")?, Dots::None);
-        assert_eq!(parse_dots(".")?, Dots::Single);
-        assert_eq!(parse_dots("..")?, Dots::Double);
-        assert_eq!(parse_dots("...")?, Dots::Triple);
+        assert_dots(parse_dots("")?, Dots::None, 0, Duration::new(0, 1));
+        assert_dots(parse_dots(".")?, Dots::Single, 1, Duration::new(1, 2));
+        assert_dots(parse_dots("..")?, Dots::Double, 2, Duration::new(3, 4));
+        assert_dots(parse_dots("...")?, Dots::Triple, 3, Duration::new(7, 8));
 
         Ok(())
+    }
+
+    fn assert_dots(dots: Dots, expected: Dots, len: usize, duration: Duration) {
+        assert_eq!(dots, expected);
+        assert_eq!(dots as usize, len);
+        assert_eq!(dots.duration(), duration);
     }
 }

@@ -1,4 +1,4 @@
-use std::{any::Any, convert::From, str::FromStr};
+use std::{convert::From, str::FromStr};
 
 use nom::{
     branch::alt,
@@ -14,8 +14,6 @@ use crate::{
     context::ContextPtr,
     dots::Dots,
     duration::Duration,
-    event::Event,
-    impl_symbol_for,
     models::ws,
 };
 use crate::models::Span;
@@ -28,8 +26,6 @@ pub struct Note {
     pub duration: Duration,
     pub dots: Dots,
 }
-
-impl_symbol_for!(Note);
 
 impl Note {
     pub fn new(
@@ -77,6 +73,34 @@ impl Note {
         self.name.diatonic_pitch() + 7 * (self.octave - 1) as i32
     }
 
+    pub fn chromatic_pitch(&self) -> i32 {
+        self.name.chromatic_pitch() + 12 * (self.octave - 1) as i32
+    }
+
+    pub fn has_stem(&self) -> bool {
+        self.duration != Duration::new(1, 1)
+    }
+
+    pub fn stem_direction(&self) -> StemDirection {
+        StemDirection::Down
+    }
+
+    pub fn num_beams(&self) -> u8 {
+        match (self.duration.num, self.duration.denom) {
+            (1, 1) => 0,
+            (1, 2) => 0,
+            (1, 4) => 0,
+            (1, 8) => 1,
+            (1, 16) => 2,
+            (1, 32) => 3,
+            _ => unimplemented!("Number of beams not implemented for duration {:?}", self.duration)
+        }
+    }
+
+    pub fn full_duration(&self) -> Duration {
+        self.duration * (1 + self.dots.duration())
+    }
+
     pub fn parse(input: Span, mut context: ContextPtr) -> IResult<Span, Self> {
         let (input, name) = alt((
             map(tag("empty"), |_| NoteName::Empty),
@@ -121,6 +145,15 @@ impl NoteName {
             Self::Solfege(s) => s.diatonic_pitch(),
         }
     }
+
+    pub fn chromatic_pitch(&self) -> i32 {
+        match self {
+            Self::Empty => 0,
+            Self::Diatonic(d) => d.chromatic_pitch(),
+            Self::Chromatic(c) => c.chromatic_pitch(),
+            Self::Solfege(s) => s.chromatic_pitch(),
+        }
+    }
 }
 
 
@@ -146,8 +179,19 @@ impl Diatonic {
             Self::F => -2,
             Self::G => -1,
             Self::A => 0,
-            Self::B => 1,
-            Self::H => 1,
+            Self::B | Self::H => 1,
+        }
+    }
+
+    pub fn chromatic_pitch(&self) -> i32 {
+        match self {
+            Self::C => -9,
+            Self::D => -7,
+            Self::E => -5,
+            Self::F => -4,
+            Self::G => -2,
+            Self::A => 0,
+            Self::B | Self::H => 2,
         }
     }
 
@@ -178,6 +222,16 @@ impl Chromatic {
             Self::Cis => -5,
             Self::Dis => -4,
             Self::Fis => -2,
+            Self::Gis => -1,
+            Self::Ais => 0,
+        }
+    }
+
+    pub fn chromatic_pitch(&self) -> i32 {
+        match self {
+            Self::Cis => -8,
+            Self::Dis => -6,
+            Self::Fis => -3,
             Self::Gis => -1,
             Self::Ais => 0,
         }
@@ -221,8 +275,19 @@ impl Solfege {
             Self::Fa => -2,
             Self::Sol => -1,
             Self::La => 0,
-            Self::Si => 1,
-            Self::Ti => 1,
+            Self::Si | Self::Ti => 1,
+        }
+    }
+
+    pub fn chromatic_pitch(&self) -> i32 {
+        match self {
+            Self::Do => -9,
+            Self::Re => -7,
+            Self::Me => -5,
+            Self::Fa => -4,
+            Self::Sol => -2,
+            Self::La => 0,
+            Self::Si | Self::Ti => 2,
         }
     }
 
@@ -246,14 +311,21 @@ impl From<Solfege> for NoteName {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum StemDirection {
+    Down,
+    Up,
+}
+
 #[cfg(test)]
 mod tests {
     use anyhow::{anyhow, Result};
 
     use crate::{
         accidentals::Accidentals,
-        context::{Context, Ptr},
+        context::Context,
     };
+    use crate::ptr::Ptr;
 
     use super::*;
 
@@ -320,9 +392,24 @@ mod tests {
     }
 
     #[test]
+    fn stem_and_beams() -> Result<()> {
+        assert_stem_beams(&parse_note("c")?, false, 0);
+        assert_stem_beams(&parse_note("c/2")?, true, 0);
+        assert_stem_beams(&parse_note("c/4")?, true, 0);
+        assert_stem_beams(&parse_note("c/8")?, true, 1);
+        assert_stem_beams(&parse_note("c/16")?, true, 2);
+        assert_stem_beams(&parse_note("c/32")?, true, 3);
+
+        Ok(())
+    }
+
+    #[test]
     fn parse_dots() -> Result<()> {
-        let note = parse_note("c.")?;
-        assert_eq!(note.dots, Dots::Single);
+        assert_dots(&parse_note("c")?, Dots::None, Duration::new(1, 1), 1.0);
+        assert_dots(&parse_note("c.")?, Dots::Single, Duration::new(3, 2), 1.5);
+        assert_dots(&parse_note("c..")?, Dots::Double, Duration::new(7, 4), 1.75);
+        assert_dots(&parse_note("c...")?, Dots::Triple, Duration::new(15, 8), 1.875);
+        assert_dots(&parse_note("c/8.")?, Dots::Single, Duration::new(3, 16), 0.1875);
 
         Ok(())
     }
@@ -362,8 +449,27 @@ mod tests {
         assert_eq!(Note::from_name(Diatonic::C).with_octave(0).diatonic_pitch(), -7 - 5);
     }
 
+    #[test]
+    fn chromatic_pitch() {
+        assert_eq!(Note::from_name(Diatonic::C).chromatic_pitch(), -9);
+        assert_eq!(Note::from_name(Diatonic::A).with_octave(2).chromatic_pitch(), 12);
+        assert_eq!(Note::from_name(Diatonic::C).with_octave(2).chromatic_pitch(), 12 - 9);
+        assert_eq!(Note::from_name(Diatonic::C).with_octave(0).chromatic_pitch(), -12 - 9);
+    }
+
     fn assert_note(note: &Note, name: impl Into<NoteName>, octave: i8) {
         assert_eq!(note.name, name.into());
         assert_eq!(note.octave, octave);
+    }
+
+    fn assert_stem_beams(note: &Note, has_stem: bool, num_beams: u8) {
+        assert_eq!(note.has_stem(), has_stem);
+        assert_eq!(note.num_beams(), num_beams);
+    }
+
+    fn assert_dots(note: &Note, dots: Dots, duration: Duration, duration_val: f32) {
+        assert_eq!(note.dots, dots);
+        assert_eq!(note.full_duration(), duration);
+        assert_eq!(note.full_duration().as_f32(), duration_val);
     }
 }

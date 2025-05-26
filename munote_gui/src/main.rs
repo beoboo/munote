@@ -2,23 +2,21 @@ use eframe::{
     egui,
     epaint::{
         Color32,
-        Shape,
-        Stroke,
         text::FontData,
     },
 };
-use egui::{Align2, Painter, pos2, Pos2, Rect, TextStyle, vec2, Visuals};
-use tracing::info;
+use egui::{pos2, TextStyle, Visuals};
 
 use munote::score::Score;
-use munote::tag::Tag;
-use munote::tag_id::TagId;
+use munote::visitor::VisitorPtr;
 
-use crate::context::Context;
-use crate::symbol::Symbol;
+use crate::drawing_context::DrawingContext;
+use crate::playback_context::PlaybackContext;
 
-mod context;
+mod drawing_context;
 mod symbol;
+mod playback_context;
+mod ui;
 
 fn main() -> Result<(), eframe::Error> {
     // Log to stdout (if you run with `RUST_LOG=debug`).
@@ -34,13 +32,26 @@ fn main() -> Result<(), eframe::Error> {
     eframe::run_native("Munote", options, Box::new(|cc| Box::new(App::new(cc))))
 }
 
-struct App {}
+struct App {
+    score: Score
+}
 
 impl App {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
         setup_custom_fonts(&cc.egui_ctx);
 
-        Self {}
+        // let score = Score::parse("[ \\clef c d e f g a b c2 ]")
+        //     .expect("Cannot parse score");
+        //
+        let score = Score::parse("[ \\clef _/2 g/8. g/16 a/4 g c2 b1/2 ]")
+            .expect("Cannot parse score");
+
+        // let score = Score::parse("[ \\clef c/4. ]")
+        //     .expect("Cannot parse score");
+
+        Self {
+            score
+        }
     }
 }
 
@@ -67,6 +78,12 @@ impl eframe::App for App {
         ctx.set_visuals(Visuals::light());
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                if ui.button("Play").clicked() {
+                    self.play()
+                }
+            });
+
             let color = if ui.visuals().dark_mode {
                 Color32::from_additive_luminance(196)
             } else {
@@ -81,110 +98,32 @@ impl eframe::App for App {
 
             let mut font_id = TextStyle::Body.resolve(ui.style());
             font_id.size = size;
+            let painter = ui.painter().clone();
 
-            let mut context = Context::new(
+            let context = Box::new(DrawingContext::new(
+                painter,
                 pos2(padding, margin_top + padding),
                 width - 2.0 * padding,
                 height - 2.0 * padding,
                 color,
                 size,
                 font_id,
-            );
+            ));
 
-            let score = Score::parse("[ \\clef c d e f g a b c2 ]")
-                .expect("Cannot parse score");
-
-            // let score = Score::parse("[ \\clef a ]")
-            //     .expect("Cannot parse score");
-
-            render_score(score, ui.painter(), &mut context);
+            self.score.visit(VisitorPtr::new(context));
         });
     }
+
 }
 
-fn render_score(score: Score, painter: &Painter, context: &mut Context) {
-    painter.rect(Rect::from_min_max(
-        context.origin,
-        context.origin + vec2(context.width, context.height),
-    ), 0.0, Color32::TRANSPARENT, Stroke::new(1.0, Color32::RED));
+impl App {
+    fn play(&self) {
+        let tempo = 60.0 * 1000.0 / 130.0;
 
-    for (_, staff) in score.staffs {
-        for voice in staff.voices {
-            render_staff(voice.staff, painter, context);
+        println!("Tempo: {tempo}");
 
-            let clef = Symbol::from_clef(&Tag::from_id(TagId::Clef), context);
-            render_symbol(clef, painter, context);
-
-            for event in voice.events {
-                if let Some(symbol) = Symbol::from_event(&event, context) {
-                    info!("{symbol:?}");
-                    render_symbol(symbol, painter, context);
-                }
-            }
-        }
+        let context = PlaybackContext::new(tempo)
+            .expect("Cannot create MIDI output");
+        self.score.visit(VisitorPtr::new(Box::new(context)));
     }
 }
-
-fn render_staff(id: u8, painter: &Painter, context: &mut Context) {
-    let mut lines = vec![];
-    let pos = context.position;
-    let width = context.width;
-
-    for i in 0..5 {
-        let y = pos.y + i as f32 * context.font_size / 4.0;
-
-        lines.push(Shape::line_segment(
-            [Pos2::new(pos.x, y), Pos2::new(pos.x + width, y)],
-            Stroke::new(1.0, context.color),
-        ));
-    }
-
-    painter.extend(lines);
-    context.position.y += context.font_size / 2.0 - 2.0;
-}
-
-fn render_symbol(symbol: Symbol, painter: &Painter, context: &mut Context) {
-    let pos = &mut context.position;
-    let symbol_pos = symbol.pos;
-
-    let rect = painter.text(
-        pos2(pos.x + symbol_pos.x, pos.y + symbol_pos.y),
-        Align2::CENTER_CENTER,
-        symbol.glyph,
-        context.font_id.clone(),
-        symbol.color,
-    );
-
-    // if context.draw_bounds {
-    painter.rect(rect, 0.0, Color32::TRANSPARENT, Stroke::new(1.0, Color32::RED));
-    // }
-
-    pos.x += rect.width();
-}
-//
-// // Clef
-// let pos = painter.text(
-//     pos2(padding + size / 2.0, margin_top + size / 2.0 - 2.0),
-//     Align2::CENTER_CENTER,
-//     Symbols::get("G CLEF").unwrap(),
-//     font_id.clone(),
-//     color,
-// );
-//
-// // Note (A)
-// painter.text(
-//     pos2(pos.right() + size / 2.0, margin_top + size + size / 8.0),
-//     Align2::CENTER_BOTTOM,
-//     Symbols::get("NOTEHEAD BLACK").unwrap(),
-//     font_id.clone(),
-//     color,
-// );
-//
-// // Bar ending
-// painter.text(
-//     pos2(width - padding - 8.0, margin_top + size / 2.0 - 2.0),
-//     Align2::CENTER_CENTER,
-//     Symbols::get("FINAL BARLINE").unwrap(),
-//     font_id,
-//     color,
-// );

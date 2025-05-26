@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-eframe = "0.21.3"
-egui = { version = "0.21.0", features = ["tracing"] }
+anyhow = "1.0"
+eframe = "0.21"
+egui = { version = "0.21", features = ["tracing"] }
+midir = "0.9"
 munote = { path = "../munote" }
-tracing = "0.1.37"
-tracing-subscriber = "0.3.16"
+tracing = "0.1"
+tracing-subscriber = "0.3"
